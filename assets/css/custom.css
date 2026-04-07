@@ -1,0 +1,64 @@
+.text-primary-custom
+{
+    color: #ff1a1a !important;
+}
+.btn-primary{
+    background: linear-gradient(
+        90deg,
+        #ff1a1a,
+        #e95555,
+        #f31313,
+        #ff1a1a,
+        #ff1a1a
+    );
+    background-size: 300% 300%;
+    animation: gradientMove 4s ease infinite;
+}
+.text-primary-custom {
+    background: linear-gradient(
+        90deg,
+        #ff1a1a,
+        #ffb2b2,
+        #ff0000,
+        #ff4d4d,
+        #ff1a1a
+    );
+    background-size: 300% 300%;
+    animation: gradientMove 4s ease infinite;
+
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+@keyframes gradientMove {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.bg-primary-custom { background-color: #ff1a1a !important; }
+.bg-primary-custom:hover { background-color: #ac0505 !important; } /* darker hover */
+.bg-gray
+{
+    background-color: #eee;
+}
+.bg-card
+{
+    background-color: #eee !important;
+        /* background-color: #ffffff !important; */
+    box-shadow: 2px 2px 6px #dbdbdb;
+}
+.bg-card.border.border-borde
+{
+    color: rgb(161 161 170 / 0.3) !important;
+}
+.text-gray-400{
+    color: rgb(73 83 99) !important;
+}

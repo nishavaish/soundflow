@@ -1,0 +1,18 @@
+.text-primary-custom
+{
+    color: #ff1a1a !important;
+}
+.bg-primary-custom { background-color: #ff1a1a !important; }
+.bg-primary-custom:hover { background-color: #ac0505 !important; } /* darker hover */
+.bg-gray
+{
+    background-color: #eee;
+}
+.bg-card
+{
+    background-color: #eee !important
+}
+.bg-card.border.border-borde
+{
+    color: rgb(161 161 170 / 0.3) !important;
+}
