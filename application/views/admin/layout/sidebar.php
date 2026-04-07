@@ -24,6 +24,10 @@
       <i data-lucide="disc-3"></i> Albums
     </a>
 
+    <a href="<?= site_url('admin/plans') ?>" class="admin-link">
+      <i data-lucide="disc-3"></i> Plans
+    </a>
+
   </nav>
 
   <!-- Footer -->
