@@ -78,7 +78,8 @@ $csrf_hash = $this->security->get_csrf_hash();
 
       <!-- Artwork -->
       <div>
-        <img src="<?= base_url($album->cover_art) ?>"
+	  <?php $artwork = $this->s3uploader->getSignedGetUrl($album->cover_art, 3600); ?>
+        <img src="<?= $artwork; ?>"
           class="w-64 h-64 object-cover rounded shadow-lg border border-border">
       </div>
 
@@ -210,12 +211,13 @@ $csrf_hash = $this->security->get_csrf_hash();
             </div>
 
             <div class="flex items-center space-x-3">
-                    <?php if (!empty($t->audio_file)): ?>
+                    <?php if (!empty($t->audio_file)): ?> 
+					<?php $audioTrack = $this->s3uploader->getSignedGetUrl($t->audio_file, 3600); ?>
                       <audio controls preload="none" class="h-8">
-                        <source src="<?php echo base_url($t->audio_file) ?>" />
+                        <source src="<?php echo $audioTrack ?>" />
                         Your browser does not support audio.
                       </audio>
-                      <a class="text-sm muted ml-2" href="<?php echo base_url($t->audio_file) ?>" target="_blank"
+                      <a class="text-sm muted ml-2" href="<?php echo $audioTrack ?>" target="_blank"
                         download>Download</a>
                     <?php else: ?>
                       <span class="text-sm muted">No audio</span>

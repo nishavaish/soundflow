@@ -35,7 +35,7 @@
 		</div>
 
 
-        <a href="<?= site_url('Sampling') ?>" class="hover:text-primary transition-colors text-black"> SAMPLING </a>
+        <a href="<?= site_url('Sampling') ?>" class="hover:text-primary transition-colors text-black"> SHOWCASE </a>
 		
         <a href="<?= site_url('my-assets') ?>" class="hover:text-primary transition-colors text-black"> ASSEST LIBRARY</a>
 		
@@ -77,20 +77,30 @@
 					<?= html_escape($this->session->userdata('user_email') ?? ''); ?>
 				  </p>
 				</div>
-<!--
+
     <div class="py-2">
       <a href="<?= base_url('profile'); ?>"
-         class="flex items-center gap-3 px-4 py-2 text-sm hover:bg-white/10 transition">
+         class="flex items-center text-white gap-3 px-4 py-2 text-sm hover:bg-white/10 transition">
         <i data-lucide="user-circle" class="w-4 h-4"></i>
         Profile
       </a>
 
-      <a href="<?= base_url('settings'); ?>"
+     <!-- <a href="<?= base_url('settings'); ?>"
          class="flex items-center gap-3 px-4 py-2 text-sm hover:bg-white/10 transition">
         <i data-lucide="settings" class="w-4 h-4"></i>
         Settings
+      </a> -->
+	  
+	  
+      <a href="<?= base_url('plans'); ?>"
+         class="flex items-center text-white gap-3 px-4 py-2 text-sm hover:bg-white/10 transition">
+        <i data-lucide="crown" class="w-4 h-4"></i> 
+        Upgrade
       </a>
-    </div> -->
+	  
+	  
+	  
+    </div>
 
     <div class="border-t border-border">
       <form action="<?= base_url('logout'); ?>" method="post">

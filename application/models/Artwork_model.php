@@ -29,9 +29,20 @@ public function save($release_id, $file_path = null, $template_id = null) {
 public function delete_by_release($release_id) {
     // optional: unlink file first
     $art = $this->get_by_release($release_id);
-    if ($art && !empty($art->file_path) && file_exists(FCPATH.$art->file_path)) {
+    
+	/* if ($art && !empty($art->file_path) && file_exists(FCPATH.$art->file_path)) {
         @unlink(FCPATH.$art->file_path);
+    }	*/
+	
+	
+	if ($art && !empty($art->file_path) ) {
+       $filePaths[] = $art->file_path;
+	   // finally call S3 delete to delete albumn data
+		 $this->s3uploader->deleteMultipleObjects($filePaths);
+
     }
+	
+	
     $this->db->where('release_id', $release_id);
     return $this->db->delete('release_artwork');
 }

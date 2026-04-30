@@ -80,9 +80,9 @@ table.dataTable thead th.sorting_desc:after {
       <th class="p-3 text-left">User</th>
       <th class="p-3 text-center">Tracks</th>
 	  
-	    <th class="px-4 py-3 text-right">Streams</th>
-		<th class="px-4 py-3 text-right">Revenue</th>
-		<th class="px-4 py-3 text-right">Downloads</th>
+	    <th class="py-3 text-center">Streams</th>
+		<th class=" py-3 text-center">Revenue</th>
+		<th class=" py-3 text-center">Downloads</th>
                
 			   
       <th class="p-3 text-center">Status</th>
@@ -95,8 +95,13 @@ table.dataTable thead th.sorting_desc:after {
     <tr class="border-t border-border hover:bg-white/5">
 
       <td class="p-3">
-        <?php if ($a->cover_art): ?>
-          <img src="<?= base_url($a->cover_art) ?>" class="w-12 h-12 rounded object-cover">
+        <?php if($a->cover_art): ?>
+		
+          <!-- <img src="<?= $this->s3uploader->getSignedGetUrl($a->cover_art, 300); ?>" class="w-12 h-12 rounded object-cover"> -->
+		  
+		  <img  class="lazy-artwork w-12 h-12 rounded object-cover" data-key="<?= $a->cover_art ?>"  src="<?php echo base_url() ?>/assets/img/img-loader.webp" />
+
+		  
         <?php else: ?>
           <div class="w-12 h-12 bg-gray-800 rounded"></div>
         <?php endif; ?>
@@ -113,13 +118,13 @@ table.dataTable thead th.sorting_desc:after {
 	  
 	  
 	   <!-- Streams -->               
-		<td class="px-4 py-3 text-right font-semibold"
+		<td class=" py-3 text-center font-semibold"
 			data-order="<?= @$a->total_streams ?>">
 			<?= number_format($a->total_streams) ?>
 		</td>
 
 		<!-- Revenue -->              
-		<td class="px-4 py-3 text-right font-semibold text-green-400"
+		<td class=" py-3 text-center font-semibold text-green-400"
 			data-order="<?= $a->total_revenue ?>">
 				₹<?= number_format($a->total_revenue, 2) ?>
 		</td>
@@ -127,7 +132,7 @@ table.dataTable thead th.sorting_desc:after {
 		
 		
 		<!-- downloads -->
-	   <td class="px-4 py-3 text-right font-semibold"
+	   <td class="py-3 text-center font-semibold"
 			data-order="<?= $a->total_downloads ?>">
 			<?= number_format($a->total_downloads) ?>
 		</td>
@@ -225,3 +230,53 @@ $(document).ready(function () {
     });
 });
 </script>
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+	const images = document.querySelectorAll('.lazy-artwork');
+
+	const keys = Array.from(images).map(img => img.dataset.key);
+
+	fetch('<?= site_url("AWSUploading/getBulkSignedUrls") ?>', {
+	  method: 'POST',
+	  headers: {
+		'Content-Type': 'application/json'
+	  },
+	 body: JSON.stringify({keys })
+	})
+	.then(async (r) => {
+	  const text = await r.text();
+
+	  try {
+		return JSON.parse(text);
+	  } catch (e) {
+		console.error("RAW RESPONSE:", text); // 👈 see actual error
+		throw new Error("Invalid JSON");
+	  }
+	})
+	.then(res => {
+
+	  if (res.status !== 'success') {
+		console.error(res.message);
+		return;
+	  }
+
+	  images.forEach(img => {
+		const key = img.dataset.key;
+		if (res.data[key]) {
+			console.log(res.data[key]);
+		  img.src = res.data[key];
+		}
+	  });
+
+	})
+	.catch(err => {
+	  console.error("Fetch error:", err);
+	});
+
+});
+</script>
+

@@ -221,6 +221,18 @@
         .modal-shake {
             animation: shake 0.4s ease;
         }
+		
+		.spinner-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.real-artwork {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
     </style>
 </head>
 
@@ -269,21 +281,28 @@
         <div id="gridWrapper" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
 
             <?php foreach ($releases as $r): ?>
-                <?php $art = $r->file_path ? base_url($r->file_path) : null; ?>
+				
+				
+                <?php //$art = $r->file_path ? $this->s3uploader->getSignedGetUrl($r->file_path, 3600) : null; ?>
 
                 <div
                     class="card delete-anim release-card-<?= $r->id ?> rounded-lg overflow-hidden border border-border card-hover relative">
 
                     <!-- COVER -->
                     <div class="relative h-48 w-full bg-gray-800">
-                        <?php if ($art): ?>
-                            <img src="<?= $art ?>" class="w-full h-full object-cover" />
+                        <?php if ($r->file_path): ?>
+                            <!-- <img src="<?= $art ?>" class="w-full h-full object-cover" /> -->
+							  
+							  
+							  <img  class="lazy-artwork w-full h-full object-cover" data-key="<?= $r->file_path ?>"  src="<?php echo base_url() ?>/assets/img/brook-preloader.gif" />
+								
+
                         <?php else: ?>
                             <div class="w-full h-full flex items-center justify-center text-gray-600">
                                 <i data-lucide="image" class="w-10 h-10"></i>
                             </div>
                         <?php endif; ?>
-
+						
                         <!-- PLAY OVERLAY -->
                         <div class="play-overlay">
                             <div class="p-3 bg-primary text-black rounded-full shadow-lg">
@@ -439,7 +458,7 @@
         <div class="modal-box relative w-full max-w-md">
 
             <h2 class="text-xl font-semibold text-white">Confirm Delete</h2>
-            <p class="muted mt-2" id="deleteModalText"></p>
+            <p class="text-white mt-2" id="deleteModalText"></p>
 
             <form id="deleteForm" method="post" class="mt-4">
                 <input type="hidden" name="<?= $this->security->get_csrf_token_name() ?>"
@@ -595,6 +614,58 @@
     </script>
     <!-- TOAST CONTAINER -->
     <div id="toastContainer" class="fixed top-5 right-5 z-[9999] space-y-3"></div>
+
+
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+	const images = document.querySelectorAll('.lazy-artwork');
+
+	const keys = Array.from(images).map(img => img.dataset.key);
+
+	fetch('<?= site_url("AWSUploading/getBulkSignedUrls") ?>', {
+	  method: 'POST',
+	  headers: {
+		'Content-Type': 'application/json'
+	  },
+	 body: JSON.stringify({keys })
+	})
+	.then(async (r) => {
+	  const text = await r.text();
+
+	  try {
+		return JSON.parse(text);
+	  } catch (e) {
+		console.error("RAW RESPONSE:", text); // 👈 see actual error
+		throw new Error("Invalid JSON");
+	  }
+	})
+	.then(res => {
+
+	  if (res.status !== 'success') {
+		console.error(res.message);
+		return;
+	  }
+
+	  images.forEach(img => {
+		const key = img.dataset.key;
+		if (res.data[key]) {
+			console.log(res.data[key]);
+		  img.src = res.data[key];
+		}
+	  });
+
+	})
+	.catch(err => {
+	  console.error("Fetch error:", err);
+	});
+
+});
+</script>
+
 
 
 </body>

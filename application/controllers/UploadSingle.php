@@ -6,7 +6,8 @@ class UploadSingle extends CI_Controller
     {
         parent::__construct();
         
-		 $this->load->library(['session', 'form_validation', 'upload', 'pagination']);
+        
+		 $this->load->library(['session', 'form_validation', 'upload', 'pagination', 'S3Uploader']);
         $this->load->helper(['url', 'form', 'text']);
 
 		
@@ -119,6 +120,8 @@ class UploadSingle extends CI_Controller
 			//echo " <br> 1"; die;
             // Upload audio file
             $audio_file = null;
+			
+			/*
             if (!empty($_FILES['audio_file']['name'])) {
 
                 $config['upload_path']   = './uploads/audio/';
@@ -140,7 +143,7 @@ class UploadSingle extends CI_Controller
 					//die; // Stop execution so you can see the error
 
 				}
-            }
+            } */
 
 
 			//echo $audio_file; //die;
@@ -159,7 +162,8 @@ class UploadSingle extends CI_Controller
                 'tiktok_sec' => $this->input->post('tiktok_sec'),
                 'crbt_clip_min' => $this->input->post('crbt_clip_min'),
                 'crbt_clip_sec' => $this->input->post('crbt_clip_sec'),
-                'audio_file' => $audio_file
+                'audio_file' =>  $this->input->post('audio_path')   
+                //'audio_file' => $audio_file
             ];
 
             $this->session->set_userdata('step3', $track_data);
@@ -196,7 +200,7 @@ class UploadSingle extends CI_Controller
             $template_id = $this->input->post('selected_template');
 
             // Upload artwork file
-            if (!empty($_FILES['artwork']['name'])) {
+            /*if (!empty($_FILES['artwork']['name'])) {
 
                 $config['upload_path']   = './uploads/artwork/';
                 $config['allowed_types'] = 'jpg|jpeg|png|gif';
@@ -218,7 +222,9 @@ class UploadSingle extends CI_Controller
 					//die; // Stop execution so you can see the error
 
 				}
-            }
+            }*/
+			
+			$file_path = $this->input->post('artwork_path');
 
             $data = [
                 'file_path'   => $file_path,
@@ -732,6 +738,7 @@ class UploadSingle extends CI_Controller
 
 
         // handle audio replacement (unchanged)
+		/*
         if (!empty($_FILES['audio_file']['name'])) {
             $config['upload_path'] = './uploads/audio/';
             $config['allowed_types'] = 'mp3|wav|flac|aiff';
@@ -753,6 +760,26 @@ class UploadSingle extends CI_Controller
                 redirect('my-releases/edit/step-3/'.$release_id);
             }
         }
+		*/
+		
+		
+		$audio_path = $this->input->post('audio_path');
+		$old_audio  = @$this->input->post('old_audio');
+
+		if (!empty($audio_path)) {
+
+			// ✅ Save new file
+			$tdata['audio_file'] = $audio_path;
+
+			// ✅ Delete old file (only if exists & different)
+			if (!empty($old_audio) && $old_audio !== $audio_path) {
+				//$this->deleteFromS3($old_audio);
+				$filePaths[] = $old_audio;
+				$result = $this->s3uploader->deleteMultipleObjects($filePaths);
+
+			}
+		}
+		
 		
 	/* 	print_r($track);
 		echo "<br>";
@@ -921,6 +948,10 @@ class UploadSingle extends CI_Controller
  *  - file upload 'artwork' -> replace existing file (unlink old) and save path
  *  - selected_template -> update template_id on artwork record (create if missing)
  */
+ 
+ 
+ 
+ 
 public function edit_step4($release_id = null)
 {
     if (!$this->session->userdata('user_id')) redirect('login');
@@ -937,7 +968,7 @@ public function edit_step4($release_id = null)
         $remove = $this->input->post('remove_artwork') ? true : false;
         $selected_template = $this->input->post('selected_template') !== null ? $this->input->post('selected_template') : null;
         $uploaded_path = null;
-
+		
         // 1) Remove artwork if requested
         if ($remove && $artwork) {
             // Artwork model should unlink file; fallback: unlink here
@@ -946,7 +977,8 @@ public function edit_step4($release_id = null)
         }
 
         // 2) Handle file upload (replace)
-        if (!empty($_FILES['artwork']['name'])) {
+        /*
+		if (!empty($_FILES['artwork']['name'])) {
             // ensure upload dir exists
             $upload_dir = FCPATH . 'uploads/artwork/';
             if (!is_dir($upload_dir)) @mkdir($upload_dir, 0755, true);
@@ -971,6 +1003,35 @@ public function edit_step4($release_id = null)
                 return redirect('my-releases/edit/step-4/'.$release_id);
             }
         }
+		
+		*/
+		
+		
+		
+		$artwork_path = $this->input->post('artwork_path');
+		$old_artwork  = $this->input->post('old_artwork');
+		$remove       = $this->input->post('remove_artwork');
+
+		if (!empty($artwork_path)) {
+			$uploaded_path = $artwork_path;
+			// delete old
+			if (!empty($old_artwork) && $old_artwork !== $artwork_path) {
+				// $this->deleteFromS3($old_artwork);
+				$filePaths[] = $old_artwork;
+				$result = $this->s3uploader->deleteMultipleObjects($filePaths);
+			}
+		} elseif ($remove == 1) {
+			// delete and remove
+			if (!empty($old_artwork)) {
+				//$this->deleteFromS3($old_artwork);
+				$filePaths[] = $old_artwork;
+				$result = $this->s3uploader->deleteMultipleObjects($filePaths);
+			   
+			}
+			$uploaded_path = NULL;
+		}
+		
+		
 
         // 3) Persist artwork record (create or update)
         if ($artwork) {

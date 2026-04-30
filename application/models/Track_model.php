@@ -54,11 +54,16 @@ class Track_model extends CI_Model
             $this->db->select('audio_file');
             $this->db->where_in('id', $track_ids);
             $files_q = $this->db->get('tracks');
-            foreach ($files_q->result() as $f) {
-                if (!empty($f->audio_file) && file_exists(FCPATH . $f->audio_file)) {
-                    @unlink(FCPATH . $f->audio_file);
+           
+			foreach ($files_q->result() as $f) {
+                if (!empty($f->audio_file)) {
+					$filePaths[] = $f->audio_file;
+				   // finally call S3 delete to delete albumn data
+					 $this->s3uploader->deleteMultipleObjects($filePaths);
                 }
             }
+			
+			
         }
 
         // 3) delete tracks

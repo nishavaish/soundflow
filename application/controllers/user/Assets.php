@@ -6,7 +6,8 @@ require_once APPPATH . 'third_party/aws/aws.phar';
 use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
 
-
+//	use Aws\S3\S3Client;
+//use Aws\S3\Exception\S3Exception;
 
 class Assets extends MY_Controller {
 
@@ -16,7 +17,7 @@ class Assets extends MY_Controller {
         if (!$this->session->userdata('user_id')) {
             redirect('login');
         }
-		
+		 $this->load->library('S3Uploader');
 		 $this->load->model('Assets_model');
     }
 
@@ -113,11 +114,11 @@ class Assets extends MY_Controller {
     
 	
 	 
-	public function deleteS3Files($filePath) {		
+	public function deleteS3Files__old($filePath) {		
 		if(!empty($filePath)){ 
 			
 			$fileName = basename($filePath); 
-			$fileName = 'users-assets/'.$fileName;
+			$fileName = 'uploads/users-assets/'.$fileName;
 			$objAwsS3Client = new S3Client([
 				'version' => 'latest',
 				'region' => AWS_ACCESS_REGION,
@@ -146,6 +147,60 @@ class Assets extends MY_Controller {
 		}
     }
     
+	
+	
+public function deleteS3Files($filePath)
+{
+    if (empty($filePath)) {
+        throw new Exception('Empty file path');
+    }
+	
+	$filePath = AWS_ACCESS_ENDPOINT.$filePath;
+
+    // Detect if URL or key
+    if (filter_var($filePath, FILTER_VALIDATE_URL)) {
+        $parsed = parse_url($filePath);
+        if (empty($parsed['path'])) {
+            throw new Exception('Invalid URL path');
+        }
+        $fileKey = ltrim($parsed['path'], '/');
+    } else {
+        $fileKey = ltrim($filePath, '/');
+    }
+
+  /*   $s3 = new S3Client([
+        'version' => 'latest',
+        'region'  => AWS_ACCESS_REGION,
+        'endpoint'=> AWS_ACCESS_ENDPOINT,
+        'credentials' => [
+            'key'    => AWS_ACCESS_KEY_ID,
+            'secret' => AWS_ACCESS_KEY_SECRET
+        ]
+    ]);
+	 */
+	
+	$s3 = new S3Client([
+		'version' => 'latest',
+		'region'  => AWS_ACCESS_REGION,
+		'credentials' => [
+			'key'    => AWS_ACCESS_KEY_ID,
+			'secret' => AWS_ACCESS_KEY_SECRET
+		]
+	]);
+
+    try {
+
+        $s3->deleteObject([
+            'Bucket' => AWS_BUCKET_NAME,
+            'Key'    => $fileKey
+        ]);
+
+        return true;
+
+    } catch (Exception $e) {
+        throw new Exception('S3 Error: ' . $e->getMessage());
+    }
+}
 	
 	
 	// *******************************************  S3 file upload ends ******************************//
@@ -206,7 +261,7 @@ class Assets extends MY_Controller {
 	}
 
 
-	public function upload_asset(){
+	public function upload_asset__old(){
 		/* if (!$this->input->is_ajax_request()) {
 			show_404();
 		} */
@@ -262,6 +317,57 @@ class Assets extends MY_Controller {
 			 return;
 		}
 	}
+	
+	public function upload_asset(){
+		
+		$user_id    = $this->session->user_id;
+		$project_id = $this->input->post('project_id');
+
+			$data = [
+				'user_id'    => $user_id,
+				'project_id' => $project_id,
+
+				'asset_name' => $this->input->post('asset_name') ?: "",
+				'asset_type' => $this->input->post('asset_type'),
+				'version'    => $this->input->post('version'),
+				'tags'       => $this->input->post('tags'),
+				'credits'    => $this->input->post('credits'),
+				'notes'      => $this->input->post('notes'),
+
+				'file_path'  => $this->input->post('audio_path'), 
+				'file_size'  => $this->input->post('file_size') // bytes
+			];
+
+			$this->Assets_model->insert_asset($data); 
+			$this->session->set_flashdata('flash_success', 'Asset uploaded successfully!');
+
+			//echo json_encode(['status'=>'success']);
+			redirect('assets/project/'.$project_id);
+		
+	}
+	
+	public function save_asset() {
+	
+	$user_id    = $this->session->user_id;
+    $data = [
+        'project_id' => $this->input->post('project_id'),
+        'asset_name' => $this->input->post('asset_name'),
+        'asset_type' => $this->input->post('asset_type'),
+        'version'    => $this->input->post('version'),
+        'tags'       => $this->input->post('tags'),
+        'credits'    => $this->input->post('credits'),
+        'notes'      => $this->input->post('notes'),
+        'file_path'  => $this->input->post('file_path'),
+        'file_size'  => 0, // optional: calculate later
+        'created_at' => date('Y-m-d H:i:s')
+    ];
+
+    //$this->db->insert('project_assets', $data);
+	$this->Assets_model->insert_asset($data); 
+	$this->session->set_flashdata('flash_success', 'Asset uploaded successfully!');
+
+	echo json_encode(['status'=>'success']);
+}
 
   
     public function uploadImage() {
@@ -425,30 +531,77 @@ public function delete_asset()
 {
     header('Content-Type: application/json');
 
-    if (!$this->session->userdata('user_id')) {
-        echo json_encode(['status'=>'error','message'=>'Unauthorized']);
-        return;
+    try {
+
+        if (!$this->session->userdata('user_id')) {
+            throw new Exception('Unauthorized');
+        }
+
+        $id = $this->input->post('id');
+
+        if (!$id) {
+            throw new Exception('Invalid request');
+        }
+
+        $asset = $this->Assets_model->get_asset($id, $this->session->userdata('user_id'));
+		
+		log_message('error', print_r($asset, true));
+
+        if (!$asset) {
+            throw new Exception('Asset not found');
+        }
+
+        // ✅ SAFE S3 DELETE
+        if (!empty($asset->file_path)) {
+            try {
+                $this->deleteS3Files($asset->file_path);
+            } catch (Exception $e) {
+              
+				$s3Error = $e->getMessage(); // capture error
+                // Optional: don't block DB delete
+                // throw new Exception('S3 delete failed');
+            }
+        }
+
+        // delete from DB
+       $this->Assets_model->delete_asset($id, $this->session->userdata('user_id'));
+
+        $this->session->set_flashdata('flash_success', 'Asset deleted successfully');
+
+        echo json_encode([
+            'status' => 'success',
+            'csrf_hash' => $this->security->get_csrf_hash(),
+			 's3_error' => $s3Error // 👈 ADD THIS
+        ]);
+
+    } catch (Exception $e) {
+
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
     }
 
-    $id = $this->input->post('id');
+    exit;
+}
 
-    if (!$id) {
-        echo json_encode(['status'=>'error','message'=>'Invalid request']);
-        return;
-    }
 
-    $asset = $this->Assets_model->get_asset($id, $this->session->userdata('user_id'));
-    if (!$asset) {
-        echo json_encode(['status'=>'error','message'=>'Asset not found']);
-        return;
-    }
 
-    // delete from S3 (already working in your app)
-    $this->deleteS3Files($asset->file_path);
-	$this->Assets_model->delete_asset($id, $this->session->userdata('user_id'));
-	$this->session->set_flashdata('flash_success', 'Asset deleted successfully');
-	echo json_encode(['status'=>'success']);
-	
+
+/// ******************************  NEw AWS upload **************************************** //
+public function get_upload_url()
+{
+    $file_name = $this->input->post('file_name');
+    $file_type = $this->input->post('file_type');
+
+    $key = 'uploads/users-assets/' . time() . '_' . preg_replace('/[^a-zA-Z0-9.\-_]/', '', $file_name);
+
+    $result = $this->s3uploader->generatePresignedUploadUrl($key, $file_type);
+
+    echo json_encode([
+        'upload_url' => $result['url'],
+        'file_path'  => $key
+    ]);
 }
 
 	

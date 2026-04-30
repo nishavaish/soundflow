@@ -80,7 +80,7 @@ tailwind.config = {
     <div class="flex flex-col md:flex-row gap-6">
 
       <!-- Artwork -->
-      <img src="<?= base_url($step4['cover_art']) ?>"
+      <img src="<?=  $this->s3uploader->getSignedGetUrl($step4['cover_art'], 3600) ?>" 
            class="w-56 h-56 rounded shadow object-cover border border-border">
 
       <!-- Info -->
@@ -124,7 +124,7 @@ tailwind.config = {
       <?php if (!empty($step2['stores'])): ?>
         <div class="flex flex-wrap gap-3 text-sm">
           <?php foreach ($step2['stores'] as $store): ?>
-            <span class="px-3 py-1 bg-[#111] border border-border rounded">
+            <span class="px-3 py-1 bg-[#111] text-white border border-border rounded">
               <?= ucfirst($store); ?>
             </span>
           <?php endforeach; ?>
@@ -143,7 +143,7 @@ tailwind.config = {
       <?php if (!empty($step2['social'])): ?>
         <div class="flex flex-wrap gap-3 text-sm">
           <?php foreach ($step2['social'] as $s): ?>
-            <span class="px-3 py-1 bg-[#111] border border-border rounded">
+            <span class="px-3 py-1 bg-[#111] text-white border border-border rounded">
               <?= ucfirst($s); ?>
             </span>
           <?php endforeach; ?>
@@ -164,7 +164,7 @@ tailwind.config = {
         <?php foreach ($step3 as $i => $track): ?>
           <div class="p-4 bg-[#111] border border-border rounded flex items-center justify-between">
             <div>
-              <div class="font-semibold"><?= ($i + 1) . ". " . $track['track_title'] ?></div>
+              <div class="font-semibold text-white " ><?= ($i + 1) . ". " . $track['track_title'] ?></div>
 
               <div class="text-sm text-muted">
                 <?php if (!empty($track['artists'])): ?>

@@ -22,7 +22,7 @@
   </script>
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-background to-[hsl(263,40%,10%)] text-white">
+<body class="min-h-screen  bg-white text-white">
 
     <div class="max-w-xl w-full">
         <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-10 text-center shadow-2xl">

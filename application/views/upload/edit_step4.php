@@ -96,7 +96,7 @@
         $selected_template = $selected_template === '' ? '' : (int)$selected_template;
       ?>
 
-      <form method="post" enctype="multipart/form-data" action="<?= base_url('my-releases/edit/step-4/'.$release->id) ?>" class="space-y-10">
+      <form id="uploadForm" method="post" enctype="multipart/form-data" action="<?= base_url('my-releases/edit/step-4/'.$release->id) ?>" class="space-y-10">
 
         <?php
           // CSRF token
@@ -104,6 +104,9 @@
           $csrf_hash = $this->security->get_csrf_hash();
         ?>
         <input type="hidden" name="<?= $csrf_name ?>" value="<?= $csrf_hash ?>" />
+		
+		
+		<input type="hidden" name="old_artwork" value="<?= $artwork->file_path ?? '' ?>">
 
         <!-- GUIDELINES -->
         <div>
@@ -129,12 +132,15 @@
           <?php if ($has_artwork): ?>
             <div class="flex gap-6 items-start">
               <div class="flex-shrink-0">
-                <img src="<?= base_url($artwork->file_path) ?>" alt="cover" class="artwork-preview" />
+                <img src="<?= $this->s3uploader->getSignedGetUrl($artwork->file_path, 3600) ?>" alt="cover" class="artwork-preview" />
+				
               </div>
 
               <div>
                 <div class="text-sm text-muted mb-2">
                   Current artwork file: <strong class="text-black"><?= html_escape(basename($artwork->file_path)) ?></strong>
+				  
+				  
                 </div>
 
                 <div class="flex gap-2">
@@ -158,7 +164,7 @@
 
               <p class="text-sm text-muted mb-3">Click to upload JPG or PNG (3000x3000 recommended)</p>
 
-              <input type="file" name="artwork" accept="image/*"
+              <input type="file" id="artwork" name="artwork" accept="image/*"
                      class="block mx-auto text-sm text-muted" required>
             </div>
           <?php endif; ?>
@@ -244,5 +250,95 @@
     });
   </script>
 
+
+
+
+<script>
+let isUploadingArtwork = false;
+
+document.querySelector("#uploadForm").addEventListener("submit", async function(e){
+
+  const fileInput = document.getElementById("artwork");
+ 
+  // ✅ Only run if user selected new artwork
+  if(fileInput && fileInput.files.length > 0 && !isUploadingArtwork){
+
+    e.preventDefault();
+    isUploadingArtwork = true;
+
+    try {
+
+      const file = fileInput.files[0];
+
+      showLoader(true);
+
+      // 🚀 Upload to S3
+      const artworkUrl = await uploadArtwork(file);
+
+      console.log("Artwork uploaded:", artworkUrl);
+
+      // ✅ remove base URL
+      const base = "<?php echo AWS_ACCESS_URL ?>";
+      const artworkPath = artworkUrl.replace(base, '');
+
+      // ✅ append hidden input
+      let hidden = document.createElement("input");
+      hidden.type = "hidden";
+      hidden.name = "artwork_path";
+      hidden.value = artworkPath;
+
+      this.appendChild(hidden);
+
+      showLoader(false);
+
+      // ✅ submit again
+      this.submit();
+
+    } catch(err){
+      console.error(err);
+     // alert("Artwork upload failed");
+      showLoader(false);
+      isUploadingArtwork = false;
+    }
+  }
+
+});
+</script>
+
+<div id="loader" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+  <div class="bg-white px-6 py-4 rounded shadow">
+    Uploading... Please wait ⏳
+  </div>
+</div>
+
+<script>
+function showLoader(show){
+  const l = document.getElementById("loader");
+  if(show){
+    l.classList.remove("hidden");
+    l.classList.add("flex");
+  } else {
+    l.classList.add("hidden");
+  }
+}
+</script>
+
+
+<script>
+async function uploadArtwork(file) {
+const safeName = file.name.replace(/\s+/g, "_");
+    const r = await fetch(`/AWSUploading/getArtworkUrl?file_name=${safeName}`);
+    const d = await r.json();
+
+    await fetch(d.url, {method:'PUT',  headers: {
+        "x-amz-acl": "private"
+    }, body:file});
+
+   // aBar.style.width = '100%';
+
+    return d.file_url;
+}
+
+</script>
 </body>
 </html>

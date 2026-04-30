@@ -177,28 +177,28 @@ tailwind.config = {
                   <label class="text-sm">Track Title *</label>
                   <input type="text" name="track_title[]" required
                          value="<?= $t->track_title ?>"
-                         class="w-full bg-black border border-border rounded p-2">
+                         class="w-full bg-white border border-border rounded p-2">
                 </div>
 
                 <div>
                   <label class="text-sm">Artists</label>
                   <input type="text" name="artists[]"
                          value="<?= $t->artists ?>"
-                         class="w-full bg-black border border-border rounded p-2">
+                         class="w-full bg-white border border-border rounded p-2">
                 </div>
 
                 <div>
                   <label class="text-sm">Songwriters</label>
                   <input type="text" name="songwriters[]"
                          value="<?= $t->songwriters ?>"
-                         class="w-full bg-black border border-border rounded p-2">
+                         class="w-full bg-white border border-border rounded p-2">
                 </div>
 
                 <div>
                   <label class="text-sm">Producers</label>
                   <input type="text" name="producers[]"
                          value="<?= $t->producers ?>"
-                         class="w-full bg-black border border-border rounded p-2">
+                         class="w-full bg-white border border-border rounded p-2">
                 </div>
 
                 <div class="md:col-span-2">
@@ -207,14 +207,14 @@ tailwind.config = {
 
                   <label class="text-sm">Replace Audio (Optional)</label>
                   <input type="file" name="audio_file[]" accept=".mp3,.wav,.flac"
-                         class="w-full bg-black border border-border rounded p-2">
+                         class="w-full bg-white border border-border rounded p-2">
                 </div>
 
               </div>
 
               <div class="mt-4">
                 <label class="text-sm">Explicit?</label>
-                <select name="is_explicit[]" class="bg-black border border-border rounded p-2">
+                <select name="is_explicit[]" class="bg-white border border-border rounded p-2">
                   <option value="0" <?= $t->is_explicit == 0 ? "selected" : "" ?>>No</option>
                   <option value="1" <?= $t->is_explicit == 1 ? "selected" : "" ?>>Yes</option>
                 </select>
@@ -229,9 +229,7 @@ tailwind.config = {
       </div>
 
       <?php if ($editMode): ?>
-      <button type="button"
-              id="addTrackBtn"
-              class="mt-6 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded">
+      <button type="button"  id="addTrackBtn" class="mt-6 bg-primary hover:bg-gray-600 px-4 py-2 rounded">
         + Add New Track
       </button>
       <?php endif; ?>
@@ -356,39 +354,39 @@ document.getElementById("addTrackBtn")?.addEventListener("click", () => {
         <div>
           <label class="text-sm">Track Title *</label>
           <input type="text" name="track_title[]" required
-                 class="w-full bg-black border border-border rounded p-2">
+                 class="w-full bg-white border border-border rounded p-2">
         </div>
 
         <div>
           <label class="text-sm">Artists</label>
           <input type="text" name="artists[]"
-                 class="w-full bg-black border border-border rounded p-2">
+                 class="w-full bg-white border border-border rounded p-2">
         </div>
 
         <div>
           <label class="text-sm">Songwriters</label>
           <input type="text" name="songwriters[]"
-                 class="w-full bg-black border border-border rounded p-2">
+                 class="w-full bg-white border border-border rounded p-2">
         </div>
 
         <div>
           <label class="text-sm">Producers</label>
           <input type="text" name="producers[]"
-                 class="w-full bg-black border border-border rounded p-2">
+                 class="w-full bg-white border border-border rounded p-2">
         </div>
 
         <div class="md:col-span-2">
           <label class="text-sm">Audio File *</label>
           <input type="file" name="audio_file[]" required
                  accept=".mp3,.wav,.flac"
-                 class="w-full bg-black border border-border rounded p-2">
+                 class="w-full bg-white border border-border rounded p-2">
         </div>
 
       </div>
 
       <div class="mt-4">
         <label class="text-sm">Explicit?</label>
-        <select name="is_explicit[]" class="bg-black border border-border rounded p-2">
+        <select name="is_explicit[]" class="bg-white border border-border rounded p-2">
           <option value="0">No</option>
           <option value="1">Yes</option>
         </select>
@@ -425,6 +423,187 @@ function prepareTrackJSON() {
   document.getElementById("track_data_json").value = JSON.stringify(output);
 }
 </script>
+
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+
+  let isUploading = false;
+
+  document.getElementById("trackForm").addEventListener("submit", async function(e){
+
+    if(isUploading) return;
+
+    e.preventDefault();
+    isUploading = true;
+
+    try {
+
+      showLoader(true);
+
+      const fileInputs = document.querySelectorAll('input[name="audio_file[]"]');
+
+      let uploadedPaths = [];
+
+      for (let i = 0; i < fileInputs.length; i++) {
+
+        const input = fileInputs[i];
+        const file = input.files[0];
+
+        // ✅ If new file selected → upload
+        if(file){
+
+          const url = await uploadAudio(file);
+
+          if(!url){
+            alert("Upload failed at track " + (i+1));
+            showLoader(false);
+            isUploading = false;
+            return;
+          }
+
+          const base = "<?php echo AWS_ACCESS_URL ?>";
+          const path = url.replace(base, '');
+
+          uploadedPaths.push(path);
+
+        } else {
+          // ✅ existing file (edit mode)
+          const existing = document.querySelectorAll('input[name="existing_audio_file[]"]')[i].value;
+          uploadedPaths.push(existing);
+        }
+      }
+
+      // ✅ Remove all file inputs (VERY IMPORTANT)
+      document.querySelectorAll('input[name="audio_file[]"]').forEach(el => el.remove());
+
+      // ✅ Append hidden inputs
+      uploadedPaths.forEach(path => {
+        let hidden = document.createElement("input");
+        hidden.type = "hidden";
+        hidden.name = "audio_path[]";
+        hidden.value = path;
+        document.getElementById("trackForm").appendChild(hidden);
+      });
+
+      showLoader(false);
+
+      // ✅ Now submit form
+      this.submit();
+
+    } catch(err){
+      console.error(err);
+      alert("Upload failed");
+      showLoader(false);
+      isUploading = false;
+    }
+
+  });
+
+});
+</script>
+
+
+
+<div id="loader" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+<div class="bg-white px-6 py-4 rounded shadow">
+    Uploading... Please wait ⏳
+  </div>
+</div>
+
+<script>
+function showLoader(show){
+  const l = document.getElementById("loader");
+  if(show){
+    l.classList.remove("hidden");
+    l.classList.add("flex");
+  } else {
+    l.classList.add("hidden");
+  }
+}
+</script>
+
+
+
+<script>
+	
+async function uploadAudio(file) {
+	
+	try {
+		console.log("🚀 uploadAudio called");
+		const safeName = file.name.replace(/\s+/g, "_");
+
+		const init = await fetch(`/AWSUploading/initiateMultipart?file_name=${safeName}`);
+		console.log("INIT RESPONSE RAW:", init);
+		
+		
+		const data = await init.json();
+		//console.log("INIT DATA:", data);
+		if (!data.key || !data.uploadId) {
+			alert("Failed to initiate upload");
+			return;
+		}
+
+		const chunk = 5 * 1024 * 1024;
+		const total = Math.ceil(file.size / chunk);
+		let parts = [];
+
+		for (let i = 1; i <= total; i++) {
+
+			const start = (i - 1) * chunk;
+			const blob = file.slice(start, start + chunk);
+
+			const u = await fetch(`/AWSUploading/getChunkUploadUrl?key=${data.key}&uploadId=${data.uploadId}&partNumber=${i}`);
+			const { url } = await u.json();
+
+			const res = await fetch(url, { method: 'PUT',   body: blob });
+
+			if (!res.ok) {
+				alert("Upload failed at part " + i);
+				return;
+			}
+
+			const etag = res.headers.get('ETag');
+
+			if (!etag) {
+				alert("Missing ETag. Fix S3 CORS.");
+				return;
+			}
+
+			parts.push({
+			ETag: `"${etag.replace(/"/g,'')}"`,
+				
+				PartNumber: i
+			});
+
+			//bBar.style.width = (i / total * 100) + '%';
+		}
+
+		console.log("FINAL PAYLOAD:", { key: data.key, uploadId: data.uploadId, parts });
+
+		const done = await fetch('/AWSUploading/completeMultipart', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ key: data.key, uploadId: data.uploadId, parts })
+		});
+
+		const final = await done.json();
+		
+		console.log("COMPLETE RESPONSE", final);
+
+		return final.file_url;
+		
+	} catch (err) {
+       // console.error("❌ ERROR:", err);
+        alert("JS Error: " + err);
+    }
+}
+</script>
+
+
+
 
 </body>
 </html>

@@ -19,7 +19,8 @@ tailwind.config = {
   }
 }
 </script>
-
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
 <style>
 @keyframes slideIn {
 from { transform: translateX(100%); opacity:0; }
@@ -29,12 +30,19 @@ from { transform: translateX(100%); opacity:0; }
 .animate-slide-in {
   animation: slideIn 0.3s ease;
 }
+
+
+.lazy-artwork {
+  background: #f3f3f3 url('<?php echo base_url() ?>/assets/img/img-loader.webp') center no-repeat;
+}
 </style>
 
 
 </head>
 
 <body class="bg-white">
+	
+
 
 <?php $this->view('page_header'); ?>
 
@@ -43,7 +51,7 @@ from { transform: translateX(100%); opacity:0; }
 
 
 <div class="flex justify-between items-center mb-6">
-  <h1 class="text-3xl font-bold">🎧 My Songs</h1>
+  <h1 class="text-3xl font-bold"> My Showcase</h1>
   
   <button onclick="openModal()" 
     class="bg-primary text-white px-4 py-2 rounded shadow hover:opacity-90">
@@ -57,7 +65,7 @@ from { transform: translateX(100%); opacity:0; }
 <!-- SONG LIST -->
 <div class="bg-white border rounded-lg p-6 shadow">
 
-<h2 class="text-xl font-semibold mb-4">Your Uploads</h2>
+<h2 class="text-xl font-semibold mb-4">Your Songs</h2>
 
 <?php if(empty($songs)): ?>
 <p class="text-gray-500">No songs uploaded yet</p>
@@ -70,7 +78,7 @@ from { transform: translateX(100%); opacity:0; }
 <tr class="border-b">
 <th class="p-3">Artwork</th>
 <th class="p-3">Song</th>
-<th class="p-3">Stats</th>
+<!-- <th class="p-3">Stats</th> -->
 <th class="p-3">Share</th>
 </tr>
 </thead>
@@ -82,7 +90,10 @@ from { transform: translateX(100%); opacity:0; }
 <tr class="border-b hover:bg-gray-50">
 
 <td class="p-3">
-<img src="<?= base_url($s->artwork_path) ?>" class="w-12 h-12 rounded object-cover">
+	<?php //$artPath =  $this->s3uploader->getSignedGetUrl($s->artwork_path, 3600); ?>
+<!-- <img src="<?= $artPath; ?>" class="w-24 h-24 rounded object-cover"> -->
+
+<img  class="lazy-artwork" data-key="<?= $s->artwork_path ?>"  src="<?php echo base_url() ?>/assets/img/img-loader.webp"  style="width:100px;height:100px;" />
 </td>
 
 <td class="p-3">
@@ -90,10 +101,11 @@ from { transform: translateX(100%); opacity:0; }
 <div class="text-sm text-gray-500"><?= $s->artist_name ?></div>
 </td>
 
+<!--
 <td class="p-3 text-sm">
 🎧 <?= number_format($s->total_plays) ?><br>
 🔗 <?= number_format($s->total_clicks) ?>
-</td>
+</td> -->
 
 <td class="p-3">
 
@@ -147,6 +159,12 @@ Delete
 
 </div>
 
+
+
+  <script>
+    lucide.createIcons();
+  </script>
+
 <script>
 function copyLink(id){
     let copyText = document.getElementById("link"+id);
@@ -182,23 +200,26 @@ function copyLink(id){
       <!-- DRAG DROP ARTWORK -->
       <div class="border-2 border-dashed p-4 text-center rounded" id="artworkDrop">
         <p class="text-sm text-gray-500">Drop Artwork here or click</p>
-        <input type="file" name="artwork" accept="image/*" hidden>
+        <input type="file" name="artwork" accept="image/*" id="artworkInput" hidden>
       </div>
 
       <!-- DRAG DROP AUDIO -->
       <div class="border-2 border-dashed p-4 text-center rounded" id="audioDrop">
         <p class="text-sm text-gray-500">Drop MP3 here or click</p>
-        <input type="file" name="audio" accept="audio/mpeg" hidden>
+        <input type="file" name="audio" accept="audio/mpeg" id="audioInput" hidden>
       </div>
 
       <!-- PROGRESS BAR -->
       <div class="w-full bg-gray-200 rounded h-3 hidden" id="progressBox">
         <div id="progressBar" class="bg-primary h-3 rounded w-0"></div>
       </div>
-
-      <button type="submit" class="w-full bg-primary text-white py-2 rounded">
-        Upload Song
-      </button>
+	  
+	  <input type="hidden" name="artwork_url" id="artwork_url">
+	<input type="hidden" name="audio_url" id="audio_url">
+	  
+	  <button id="uploadBtn" type="button"  class="w-full bg-primary text-white py-2 rounded"  onclick="uploadSong()">
+		  Upload Song
+		</button>
 
     </form>
 
@@ -455,6 +476,208 @@ function showToast(message, type = 'success') {
     setTimeout(() => toast.remove(), 500);
   }, 3000);
 }
+</script>
+
+
+
+
+
+<script>
+async function uploadSong() {
+
+    const btn = document.getElementById("uploadBtn");
+    const loader = document.getElementById("globalLoader");
+
+    try {
+        const art = artworkInput.files[0];
+        const aud = audioInput.files[0];
+
+        if (!art || !aud) {
+            showToast("Select artwork & audio", "error");
+            return;
+        }
+
+        // ✅ Disable button + show loader
+        btn.disabled = true;
+        btn.innerText = "Uploading...";
+       loader.classList.remove("hidden"); // show
+
+        const [artUrl, audioUrl] = await Promise.all([
+            uploadArtwork(art),
+            uploadAudio(aud)
+        ]);
+
+        console.log("ART:", artUrl);
+        console.log("AUDIO:", audioUrl);
+		
+		 // ✅ Inject into form
+        document.getElementById("artwork_url").value = artUrl;
+        document.getElementById("audio_url").value = audioUrl;
+
+        // ✅ Trigger form submit
+        document.getElementById("uploadForm").dispatchEvent(new Event('submit', { cancelable: true }));
+
+
+        showToast("Upload successful", "success");
+
+        setTimeout(() => location.reload(), 1200);
+
+    } catch (err) {
+        console.error(err);
+        showToast("Upload failed", "error");
+    } finally {
+        // ✅ Reset UI
+        btn.disabled = false;
+        btn.innerText = "Upload Song";
+        loader.classList.add("hidden");
+    }
+}
+
+
+
+async function uploadArtwork(file) {
+const safeName = file.name.replace(/\s+/g, "_");
+    const r = await fetch(`/AWSUploading/getArtworkUrl?file_name=${safeName}`);
+    const d = await r.json();
+
+    await fetch(d.url, {method:'PUT',  headers: {
+        "x-amz-acl": "private"
+    }, body:file});
+
+   // aBar.style.width = '100%';
+
+    return d.file_url;
+}
+
+async function uploadAudio(file) {
+	
+	try {
+		//console.log("🚀 uploadAudio called");
+		const safeName = file.name.replace(/\s+/g, "_");
+
+		const init = await fetch(`/AWSUploading/initiateMultipart?file_name=${safeName}`);
+		//console.log("INIT RESPONSE RAW:", init);
+		
+		
+		const data = await init.json();
+		//console.log("INIT DATA:", data);
+		if (!data.key || !data.uploadId) {
+			alert("Failed to initiate upload");
+			return;
+		}
+
+		const chunk = 5 * 1024 * 1024;
+		const total = Math.ceil(file.size / chunk);
+		let parts = [];
+
+		for (let i = 1; i <= total; i++) {
+
+			const start = (i - 1) * chunk;
+			const blob = file.slice(start, start + chunk);
+
+			const u = await fetch(`/AWSUploading/getChunkUploadUrl?key=${data.key}&uploadId=${data.uploadId}&partNumber=${i}`);
+			const { url } = await u.json();
+
+			const res = await fetch(url, { method: 'PUT',   body: blob });
+
+			if (!res.ok) {
+				alert("Upload failed at part " + i);
+				return;
+			}
+
+			const etag = res.headers.get('ETag');
+
+			if (!etag) {
+				alert("Missing ETag. Fix S3 CORS.");
+				return;
+			}
+
+			parts.push({
+			ETag: `"${etag.replace(/"/g,'')}"`,
+				
+				PartNumber: i
+			});
+
+			//bBar.style.width = (i / total * 100) + '%';
+		}
+
+		//console.log("FINAL PAYLOAD:", { key: data.key, uploadId: data.uploadId, parts });
+
+		const done = await fetch('/AWSUploading/completeMultipart', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ key: data.key, uploadId: data.uploadId, parts })
+		});
+
+		const final = await done.json();
+		
+		//console.log("COMPLETE RESPONSE", final);
+
+		return final.file_url;
+		
+	} catch (err) {
+       // console.error("❌ ERROR:", err);
+        alert("JS Error: " + err);
+    }
+}
+</script>
+
+
+
+<div id="globalLoader" class="hidden fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center">
+  <div class="text-white text-center">
+    <div class="animate-spin rounded-full h-10 w-10 border-4 border-white border-t-transparent mx-auto"></div>
+    <p class="mt-3 text-sm">Uploading your track...</p>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+	const images = document.querySelectorAll('.lazy-artwork');
+
+	const keys = Array.from(images).map(img => img.dataset.key);
+
+	fetch('<?= site_url("Sampling/getBulkSignedUrls") ?>', {
+	  method: 'POST',
+	  headers: {
+		'Content-Type': 'application/json'
+	  },
+	 body: JSON.stringify({
+  keys,
+  '<?= $this->security->get_csrf_token_name(); ?>': '<?= $this->security->get_csrf_hash(); ?>'
+})
+	})
+	.then(async (r) => {
+	  const text = await r.text();
+
+	  try {
+		return JSON.parse(text);
+	  } catch (e) {
+		console.error("RAW RESPONSE:", text); // 👈 see actual error
+		throw new Error("Invalid JSON");
+	  }
+	})
+	.then(res => {
+
+	  if (res.status !== 'success') {
+		console.error(res.message);
+		return;
+	  }
+
+	  images.forEach(img => {
+		const key = img.dataset.key;
+		if (res.data[key]) {
+		  img.src = res.data[key];
+		}
+	  });
+
+	})
+	.catch(err => {
+	  console.error("Fetch error:", err);
+	});
+
+});
 </script>
 
 </body>

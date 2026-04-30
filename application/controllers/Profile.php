@@ -14,7 +14,7 @@ class Profile extends MY_Controller {
             'Invoice_model'
         ]);
 
-        $this->load->library(['upload', 'form_validation']);
+        $this->load->library(['upload', 'form_validation','S3Uploader']);
         $this->load->helper(['url', 'form']);
     }
 
@@ -110,7 +110,7 @@ public function update_bank_ajax()
 
 
 
-public function upload_invoice_ajax()
+public function upload_invoice_ajax___old()
 {
    // if (!$this->input->is_ajax_request()) show_404();
 
@@ -139,6 +139,35 @@ public function upload_invoice_ajax()
 		'title'          => $this->input->post('title'),
 		'invoice_month'  => $this->input->post('invoice_month'),
 		'file_path'      => 'uploads/invoices/' . $file['file_name']
+	]);
+
+
+	echo json_encode([
+        'status'     => 'success',
+        'message'    => 'Invoice uploaded successfully',
+        'csrf_hash'  => $this->security->get_csrf_hash()
+    ]);
+}
+
+
+public function upload_invoice_ajax()
+{
+   // if (!$this->input->is_ajax_request()) show_404();
+	$file_path = $this->input->post('file_path');
+
+	if (!$file_path) {
+		echo json_encode([
+			'status' => 'error',
+			'message' => 'File missing',
+			'csrf_hash'  => $this->security->get_csrf_hash()
+		]);
+		return;
+	}
+	$this->Invoice_model->insert([
+		'user_id'        => $this->session->userdata('user_id'),
+		'title'          => $this->input->post('title'),
+		'invoice_month'  => $this->input->post('invoice_month'),
+		'file_path'      => $file_path
 	]);
 
 
@@ -180,19 +209,27 @@ public function delete_invoice()
 		return;
 	} else {
 
-    if ($invoice) {
-        $file = FCPATH . $invoice->file_path;
-        if (file_exists($file)) {
-            unlink($file);
-        }
-        $this->Invoice_model->delete($id);
-    }
+		if ($invoice) {
+			/* $file = FCPATH . $invoice->file_path;
+			if (file_exists($file)) {
+				unlink($file);
+			}
+			
+			 */
+			 
+			if (!empty($invoice->file_path)) {
+				$filePaths[] = $invoice->file_path;
+				$this->s3uploader->deleteMultipleObjects($filePaths);
+			}
+			
+			$this->Invoice_model->delete($id);
+		}
 
-    echo json_encode([
-        'status' => 'success',
-        'message' => 'Invoice deleted successfully',
-        'csrf_hash' => $this->security->get_csrf_hash()
-    ]);
+		echo json_encode([
+			'status' => 'success',
+			'message' => 'Invoice deleted successfully',
+			'csrf_hash' => $this->security->get_csrf_hash()
+		]);
 	
 	}
 }

@@ -183,9 +183,6 @@ $route['profile/delete_invoice'] = 'Profile/delete_invoice';
 $route['invoices'] = 'Invoices/index';
 
 
-$route['plans'] = 'Plans/index';
-
-
 
 
 // Add any other routes your React app used here...
@@ -225,7 +222,5 @@ $route['admin/streaminglinks/toggle/(:num)'] = 'admin/StreamingLinks/toggle/$1';
 
 
 
-$route['admin/plans/'] = 'admin/plans/index';
-$route['admin/plans/delete/(:num)'] = 'admin/plans/delete/$1';
-$route['admin/plans/toggle_status'] = 'admin/plans/toggle_status';
+
 

@@ -5,6 +5,7 @@
   <title>Project Assets</title>
 
   <!-- Tailwind -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -14,13 +15,14 @@
             primary: "#ff531a",
             background: "#000000",
             border: "#27272a",
-            card: "#111111",
-            muted: "#9ca3af"
+            muted: "#9ca3af",
+            card: "#111111"
           }
         }
       }
     }
   </script>
+
 
 <script>
 window.CSRF_TOKEN_NAME = '<?= $this->security->get_csrf_token_name(); ?>';
@@ -38,7 +40,7 @@ window.CSRF_TOKEN = '<?= $this->security->get_csrf_hash(); ?>';
   </style>
 </head>
 
-<body class="bg-background text-white">
+<body class="bg-white min-h-screen text-black">
 	
 	  <!-- Header -->
  <?php $this->view('page_header'); ?>
@@ -52,10 +54,12 @@ window.CSRF_TOKEN = '<?= $this->security->get_csrf_hash(); ?>';
       <p class="text-muted text-sm">Project assets</p>
     </div>
 
-    <button onclick="openUploadForm()"
-            class="px-4 py-2 bg-primary text-black font-semibold rounded">
+    <button onclick="openUploadForm()" class="px-4 py-2 bg-primary text-white font-semibold rounded">
       + Upload Asset
     </button>
+
+	
+	
   </div>
 
   <!-- ================= Upload Form (Hidden) ================= -->
@@ -72,7 +76,7 @@ window.CSRF_TOKEN = '<?= $this->security->get_csrf_hash(); ?>';
       </button>
     </div>
 
-    <form id="assetUploadForm" enctype="multipart/form-data">
+    <form id="assetUploadForm" enctype="multipart/form-data" action="<?= site_url("assets/upload_asset") ?>" method="post">
 	
 	<input type="hidden"
        name="<?= $this->security->get_csrf_token_name(); ?>"
@@ -85,13 +89,13 @@ window.CSRF_TOKEN = '<?= $this->security->get_csrf_hash(); ?>';
         <div>
           <label class="text-sm">Asset Name (optional)</label>
           <input name="asset_name"
-                 class="w-full mt-1 bg-black border border-border rounded px-3 py-2">
+                 class="w-full mt-1 bg-white text-black border border-border rounded px-3 py-2">
         </div>
 
         <div>
           <label class="text-sm">Asset Type</label>
           <select name="asset_type"
-                  class="w-full mt-1 bg-black border border-border rounded px-3 py-2">
+                  class="w-full mt-1 bg-white text-black border border-border rounded px-3 py-2">
             <option>Master Track</option>
             <option>Instrumental</option>
             <option>Stem</option>
@@ -106,33 +110,33 @@ window.CSRF_TOKEN = '<?= $this->security->get_csrf_hash(); ?>';
           <label class="text-sm">Version</label>
           <input name="version"
                  placeholder="v1, final"
-                 class="w-full mt-1 bg-black border border-border rounded px-3 py-2">
+                 class="w-full mt-1 bg-white text-black border border-border rounded px-3 py-2">
         </div>
 
         <div>
           <label class="text-sm">Tags</label>
           <input name="tags"
                  placeholder="lead vocal, chorus"
-                 class="w-full mt-1 bg-black border border-border rounded px-3 py-2">
+                 class="w-full mt-1 bg-white text-black border border-border rounded px-3 py-2">
         </div>
       </div>
 
       <div class="mb-4">
         <label class="text-sm">Credits</label>
         <input name="credits"
-               class="w-full mt-1 bg-black border border-border rounded px-3 py-2">
+               class="w-full mt-1 bg-white text-blackborder border-border rounded px-3 py-2">
       </div>
 
       <div class="mb-4">
         <label class="text-sm">Notes</label>
         <textarea name="notes"
-                  class="w-full mt-1 bg-black border border-border rounded px-3 py-2"></textarea>
+                  class="w-full mt-1 bg-white text-black border border-border rounded px-3 py-2"></textarea>
       </div>
 
       <div class="mb-4">
         <label class="text-sm">Select File</label>
-        <input type="file" name="file" required
-               class="w-full mt-1 bg-black border border-border rounded px-3 py-2">
+        <input type="file" id="audio_file" name="file" required
+               class="w-full mt-1 bg-white text-black border border-border rounded px-3 py-2">
       </div>
 
       <!-- Progress -->
@@ -249,10 +253,10 @@ window.CSRF_TOKEN = '<?= $this->security->get_csrf_hash(); ?>';
 
         <input name="asset_name"
                placeholder="Asset Name"
-               class="w-full bg-black border border-border rounded px-3 py-2">
+               class="w-full bg-white text-black border border-border rounded px-3 py-2">
 
         <select name="asset_type"
-                class="w-full bg-black border border-border rounded px-3 py-2">
+                class="w-full bg-white text-black border border-border rounded px-3 py-2">
           <option>Master Track</option>
           <option>Instrumental</option>
           <option>Stem</option>
@@ -262,19 +266,19 @@ window.CSRF_TOKEN = '<?= $this->security->get_csrf_hash(); ?>';
 
         <input name="version"
                placeholder="Version"
-               class="w-full bg-black border border-border rounded px-3 py-2">
+               class="w-full bg-white text-black border border-border rounded px-3 py-2">
 
         <input name="tags"
                placeholder="Tags"
-               class="w-full bg-black border border-border rounded px-3 py-2">
+               class="w-full bg-white text-black border border-border rounded px-3 py-2">
 
         <input name="credits"
                placeholder="Credits"
-               class="w-full bg-black border border-border rounded px-3 py-2">
+               class="w-full bg-white text-black border border-border rounded px-3 py-2">
 
         <textarea name="notes"
                   placeholder="Notes"
-                  class="w-full bg-black border border-border rounded px-3 py-2"></textarea>
+                  class="w-full bg-white text-black border border-border rounded px-3 py-2"></textarea>
 
       </div>
 
@@ -296,7 +300,7 @@ window.CSRF_TOKEN = '<?= $this->security->get_csrf_hash(); ?>';
 
   <div class="bg-card border border-border rounded-lg w-full max-w-sm p-6">
 
-    <h3 class="text-lg font-semibold mb-2 text-white">
+    <h3 class="text-lg font-semibold mb-2 text-black">
       Delete Asset
     </h3>
 
@@ -352,39 +356,63 @@ function closeUploadForm() {
 }
 
 /* AJAX upload with progress */
-document.getElementById('assetUploadForm').addEventListener('submit', function(e) {
-  e.preventDefault();
+/*
+document.addEventListener("DOMContentLoaded", function(){
 
-  const xhr = new XMLHttpRequest();
-  const formData = new FormData(this);
+  let isUploading = false;
 
-  const bar = document.getElementById('progressBar');
-  const percent = document.getElementById('progressPercent');
-  document.getElementById('progressWrap').classList.remove('hidden');
+  document.getElementById("assetUploadForm").addEventListener("submit", async function(e){
 
-  xhr.upload.onprogress = e => {
-    if (e.lengthComputable) {
-      const p = Math.round((e.loaded / e.total) * 100);
-      bar.style.width = p + '%';
-      percent.innerText = p + '%';
+    if(!isUploading){
+      e.preventDefault();
+      isUploading = true;
+
+      try {
+
+        const fileInput = this.querySelector('input[name="file"]');
+        const file = fileInput.files[0];
+
+        if(!file){
+          alert("Please select a file");
+          isUploading = false;
+          return;
+        }
+
+        const bar = document.getElementById('progressBar');
+        const percent = document.getElementById('progressPercent');
+        document.getElementById('progressWrap').classList.remove('hidden');
+
+        // ✅ STEP 1: Upload to S3
+        const fileUrl = await uploadAudio(file);
+
+        // ✅ STEP 2: Convert to relative path
+        const base = "<?php echo AWS_ACCESS_URL ?>";
+        const filePath = fileUrl.replace(base, '');
+
+        // ✅ STEP 3: Attach to form
+        let hidden = document.createElement("input");
+        hidden.type = "hidden";
+        hidden.name = "file_path";
+        hidden.value = filePath;
+
+        this.appendChild(hidden);
+
+        // ✅ STEP 4: Continue your existing AJAX submit
+        submitAssetForm(this);
+
+      } catch(err){
+        console.error(err);
+        alert("Upload failed");
+        isUploading = false;
+      }
+
     }
-  };
 
-	  
-	  xhr.onload = () => {
-	  const res = JSON.parse(xhr.responseText);
-	  if (res.status === 'success') {
-		location.reload();
-	  } else {
-		alert(res.message);
-	  }
-	};
+  });
 
-
-  xhr.open('POST', '<?= site_url("assets/upload_asset") ?>');
-  xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-  xhr.send(formData);
 });
+
+*/
 </script>
 
 <script>
@@ -447,22 +475,43 @@ function confirmDeleteAsset() {
     '<?= $this->security->get_csrf_hash(); ?>'
   );
 
-  fetch('<?= site_url("assets/delete_asset") ?>', {
-    method: 'POST',
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
-    },
-    body: fd
-  })
-  .then(r => r.json())
-  .then(res => {
-    if (res.status === 'success') {
-      location.reload(); // flash message shows
-    } else {
-      alert(res.message || 'Delete failed');
-    }
-  })
-  .catch(() => alert('Request failed'));
+	 fetch('<?= site_url("assets/delete_asset") ?>', {
+	  method: 'POST',
+	  headers: {
+		'X-Requested-With': 'XMLHttpRequest'
+	  },
+	  body: fd
+	})
+	.then(async (r) => {
+	  const text = await r.text(); // DEBUG FIRST
+
+	  try {
+		return JSON.parse(text);
+	  } catch (e) {
+		console.error("Invalid JSON response:", text);
+		throw new Error("Server did not return JSON");
+	  }
+	})
+	.then(res => {
+	
+	 //console.log("FULL RESPONSE:", res); // 👈 always log
+
+	  if (res.s3_error) {
+		console.error("S3 DELETE ERROR:", res.s3_error); // 👈 shows exact AWS/PHP error
+	  }
+	
+	
+	  if (res.status === 'success') {
+		location.reload();
+		
+	  } else {
+		alert(res.message || 'Delete failed');
+	  }
+	})
+	.catch(err => {
+	  console.error(err);
+	  alert('Request failed (check console)');
+	});
 }
 </script>
 
@@ -476,6 +525,177 @@ setTimeout(() => {
 }, 3000);
 </script>
 
+
+<script>  
+  
+document.addEventListener("DOMContentLoaded", function(){
+
+  let isUploading = false;
+
+  document.getElementById("assetUploadForm").addEventListener("submit", async function(e){
+
+    if(!isUploading){
+      e.preventDefault();
+
+      isUploading = true;
+
+      try {
+
+        const audioInput = document.getElementById("audio_file");
+
+        if(!audioInput){
+          console.error("audio_file input not found ❌");
+          return;
+        }
+
+        const aud = audioInput.files[0];
+		
+		
+
+        if(!aud){
+          alert("Please select audio");
+          isUploading = false;
+          return;
+        }
+		
+		const fileSize = aud.size; // in bytes
+		console.log("File size:", fileSize);
+
+        showLoader(true);
+
+        const audioUrl = await uploadAudio(aud);
+
+        const base = "<?php echo AWS_ACCESS_URL ?>";
+        const audioPath = audioUrl.replace(base, '');
+
+        let form = this;
+
+        let hidden = document.createElement("input");
+        hidden.type = "hidden";
+        hidden.name = "audio_path";
+        hidden.value = audioPath;
+		form.appendChild(hidden);
+		
+		
+		let sizeInput = document.createElement("input");
+		sizeInput.type = "hidden";
+		sizeInput.name = "file_size";
+		sizeInput.value = fileSize;
+		form.appendChild(sizeInput);
+
+        showLoader(false);
+
+        form.submit();
+
+      } catch(err){
+        console.error(err);
+        showLoader(false);
+        isUploading = false;
+      }
+
+    }
+
+  });
+
+});
+</script>
+
+
+<script>
+function showLoader(show){
+  const l = document.getElementById("loader");
+  if(show){
+    l.classList.remove("hidden");
+    l.classList.add("flex");
+  } else {
+    l.classList.add("hidden");
+  }
+}
+
+</script>
+
+
+<script>
+	
+async function uploadAudio(file) {
+	
+	try {
+		console.log("🚀 uploadAudio called");
+		const safeName = file.name.replace(/\s+/g, "_");
+
+		const init = await fetch(`/AWSUploading/initiateMultipartAssets?file_name=${safeName}`);
+		console.log("INIT RESPONSE RAW:", init);
+		
+		
+		const data = await init.json();
+		console.log("INIT DATA:", data);
+		if (!data.key || !data.uploadId) {
+			alert("Failed to initiate upload");
+			return;
+		}
+
+		const chunk = 5 * 1024 * 1024;
+		const total = Math.ceil(file.size / chunk);
+		let parts = [];
+
+		for (let i = 1; i <= total; i++) {
+
+			const start = (i - 1) * chunk;
+			const blob = file.slice(start, start + chunk);
+
+			const u = await fetch(`/AWSUploading/getChunkUploadUrl?key=${data.key}&uploadId=${data.uploadId}&partNumber=${i}`);
+			const { url } = await u.json();
+
+			const res = await fetch(url, { method: 'PUT',   body: blob });
+
+			if (!res.ok) {
+				alert("Upload failed at part " + i);
+				return;
+			}
+
+			const etag = res.headers.get('ETag');
+
+			if (!etag) {
+				alert("Missing ETag. Fix S3 CORS.");
+				return;
+			}
+
+			parts.push({
+			ETag: `"${etag.replace(/"/g,'')}"`,
+				
+				PartNumber: i
+			});
+
+			//bBar.style.width = (i / total * 100) + '%';
+		}
+
+		console.log("FINAL PAYLOAD:", { key: data.key, uploadId: data.uploadId, parts });
+
+		const done = await fetch('/AWSUploading/completeMultipart', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ key: data.key, uploadId: data.uploadId, parts })
+		});
+
+		const final = await done.json();
+		
+		console.log("COMPLETE RESPONSE", final);
+
+		return final.file_url;
+		
+	} catch (err) {
+       // console.error("❌ ERROR:", err);
+        alert("JS Error: " + err);
+    }
+}
+</script>
+
+
+<div id="loader" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+  <div class="bg-white px-6 py-4 rounded shadow">
+    Uploading... Please wait ⏳
+  </div>
+</div>
 
 </body>
 </html>

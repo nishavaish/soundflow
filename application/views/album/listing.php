@@ -1,4 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -209,7 +211,8 @@
         <div id="gridWrapper" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             <?php foreach ($albums as $album): ?>
                 <?php
-                $cover = $album->cover_art ? base_url($album->cover_art) : null;
+				//$artwork = $this->s3uploader->getSignedGetUrl($album->cover_art, 3600);
+				//$cover = $album->cover_art ? $artwork : null;
                 $album_id = $album->id;
                 ?>
 
@@ -218,8 +221,10 @@
 
                     <!-- Cover -->
                     <div class="relative h-48 bg-gray-800">
-                        <?php if ($cover): ?>
-                            <img src="<?= $cover ?>" class="w-full h-full object-cover">
+                        <?php if ($album->cover_art): ?>
+                            <!-- <img src="<?= $cover ?>" class="w-full h-full object-cover"> -->
+							  <img  class="lazy-artwork w-full h-full object-cover" data-key="<?= $album->cover_art ?>"  src="<?php echo base_url() ?>/assets/img/brook-preloader.gif" />
+							
                         <?php else: ?>
                             <div class="w-full h-full flex items-center justify-center text-gray-600">
                                 <i data-lucide="image" class="w-10 h-10"></i>
@@ -284,7 +289,10 @@
 
             <?php foreach ($albums as $album): ?>
                 <?php
-                $cover = $album->cover_art ? base_url($album->cover_art) : null;
+				
+				$artwork = $this->s3uploader->getSignedGetUrl($album->cover_art, 3600);
+				//$artwork = $album->cover_art;
+                $cover = $album->cover_art ? $artwork : null;
                 $album_id = $album->id;
                 ?>
 
@@ -495,6 +503,58 @@
                 });
         };
     </script>
+	
+	
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+	const images = document.querySelectorAll('.lazy-artwork');
+
+	const keys = Array.from(images).map(img => img.dataset.key);
+
+	fetch('<?= site_url("AWSUploading/getBulkSignedUrls") ?>', {
+	  method: 'POST',
+	  headers: {
+		'Content-Type': 'application/json'
+	  },
+	 body: JSON.stringify({keys })
+	})
+	.then(async (r) => {
+	  const text = await r.text();
+
+	  try {
+		return JSON.parse(text);
+	  } catch (e) {
+		console.error("RAW RESPONSE:", text); // 👈 see actual error
+		throw new Error("Invalid JSON");
+	  }
+	})
+	.then(res => {
+
+	  if (res.status !== 'success') {
+		console.error(res.message);
+		return;
+	  }
+
+	  images.forEach(img => {
+		const key = img.dataset.key;
+		if (res.data[key]) {
+			console.log(res.data[key]);
+		  img.src = res.data[key];
+		}
+	  });
+
+	})
+	.catch(err => {
+	  console.error("Fetch error:", err);
+	});
+
+});
+</script>
+
+
 
 </body>
 

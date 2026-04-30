@@ -84,11 +84,9 @@ defined('EXIT_DATABASE')       OR define('EXIT_DATABASE', 8); // database error
 defined('EXIT__AUTO_MIN')      OR define('EXIT__AUTO_MIN', 9); // lowest automatically-assigned error code
 defined('EXIT__AUTO_MAX')      OR define('EXIT__AUTO_MAX', 125); // highest automatically-assigned error code
 
-
-
-define("AWS_ACCESS_KEY_ID", "DO00UWYNLPT8XTXUBFVG");
-define("AWS_ACCESS_KEY_SECRET", "KqrsCrCjVhDRrpWad5YAsrsgmNb2vMXOrthYcHbgqHQ");
-define("AWS_ACCESS_REGION", "blr1");
-define("AWS_ACCESS_ENDPOINT", "https://blr1.digitaloceanspaces.com/");
-define("AWS_BUCKET_NAME", "soundflow");
-define("AWS_ACCESS_URL", "https://soundflow.blr1.digitaloceanspaces.com/");
+define("AWS_ACCESS_KEY_ID", getenv('AWS_ACCESS_KEY'));
+define("AWS_ACCESS_KEY_SECRET", getenv('AWS_SECRET_KEY'));
+define("AWS_ACCESS_REGION", "ap-south-1");
+define("AWS_ACCESS_ENDPOINT", "https://kbotunecore.s3.ap-south-1.amazonaws.com/");
+define("AWS_BUCKET_NAME", "kbotunecore");
+define("AWS_ACCESS_URL", "https://kbotunecore.s3.ap-south-1.amazonaws.com/");

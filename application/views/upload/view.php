@@ -42,7 +42,9 @@ defined('BASEPATH') OR exit('No direct script access allowed');
       <!-- Cover -->
       <div class="w-56 h-56 bg-gray-900 rounded-lg overflow-hidden border border-border">
         <?php if (!empty($release->file_path)): ?>
-          <img src="<?php echo base_url($release->file_path) ?>" alt="cover" class="w-full h-full object-cover" />
+          <img src="<?php echo $this->s3uploader->getSignedGetUrl($release->file_path, 3600) ?>" alt="cover" class="w-full h-full object-cover" />
+		  
+		  
         <?php else: ?>
           <div class="w-full h-full flex items-center justify-center text-gray-500">
             <svg class="w-12 h-12 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,7 +96,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
         <!-- Tracks -->
         <div class="mt-8">
-          <h3 class="text-xl font-semibold text-white mb-4">Tracks</h3>
+          <h3 class="text-xl font-semibold text-black mb-4">Tracks</h3>
 
           <?php if (!empty($tracks)): ?>
             <ul class="space-y-3">
@@ -114,10 +116,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                   <div class="flex items-center space-x-3">
                     <?php if (!empty($t->audio_file)): ?>
                       <audio controls preload="none" class="h-8">
-                        <source src="<?php echo base_url($t->audio_file) ?>" />
+                        <source src="<?php echo $this->s3uploader->getSignedGetUrl($t->audio_file, 3600) ?>" />
+					
                         Your browser does not support audio.
                       </audio>
-                      <a class="text-sm muted ml-2" href="<?php echo base_url($t->audio_file) ?>" target="_blank"
+                      <a class="text-sm muted ml-2" href="<?php echo 	$this->s3uploader->getSignedGetUrl($t->audio_file, 3600) ?>" target="_blank"
                         download>Download</a>
                     <?php else: ?>
                       <span class="text-sm muted">No audio</span>

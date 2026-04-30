@@ -160,6 +160,9 @@
         $csrf_hash = $this->security->get_csrf_hash();
         ?>
         <input type="hidden" name="<?= $csrf_name ?>" value="<?= $csrf_hash ?>" />
+		
+		
+		<input type="hidden" name="old_audio" value="<?= $track->audio_file ?>">
 
         <!-- AUDIO UPLOAD -->
                <!-- AUDIO UPLOAD (shows current file if present, optional replace/remove) -->
@@ -176,7 +179,7 @@
               <div class="flex-shrink-0">
                 <!-- Simple audio player preview -->
                 <audio controls class="w-64">
-                  <source src="<?= base_url($track->audio_file) ?>" />
+                  <source src="<?= $this->s3uploader->getSignedGetUrl($track->audio_file, 3600) ?>" />
                   Your browser does not support the audio element.
                 </audio>
               </div>
@@ -522,6 +525,163 @@
       document.getElementById("producers").appendChild(div);
     }
   </script>
+  
+  
+  
+  
+  <script>
+let isUploading = false;
+
+document.querySelector("form").addEventListener("submit", async function(e){
+
+  const fileInput = document.getElementById("audio_file");
+
+  // ✅ Only intercept if user selected new file
+  if(fileInput && fileInput.files.length > 0 && !isUploading){
+
+    e.preventDefault();
+    isUploading = true;
+
+    try {
+
+      const file = fileInput.files[0];
+
+      if(!file){
+        this.submit(); // fallback
+        return;
+      }
+
+      showLoader(true);
+
+      // 🚀 Upload to S3
+      const audioUrl = await uploadAudio(file);
+
+      console.log("Uploaded:", audioUrl);
+
+      // ✅ Remove base URL
+      const base = "<?php echo AWS_ACCESS_URL ?>";
+      const audioPath = audioUrl.replace(base, '');
+
+      // ✅ Append hidden field
+      let hidden = document.createElement("input");
+      hidden.type = "hidden";
+      hidden.name = "audio_path";
+      hidden.value = audioPath;
+
+      this.appendChild(hidden);
+
+      showLoader(false);
+
+      // ✅ Submit again
+      this.submit();
+
+    } catch(err){
+      console.error(err);
+      alert("Upload failed");
+      showLoader(false);
+      isUploading = false;
+    }
+  }
+});
+</script>
+
+
+<div id="loader" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+  <div class="bg-white px-6 py-4 rounded shadow">
+    Uploading... Please wait ⏳
+  </div>
+</div>
+
+<script>
+function showLoader(show){
+  const l = document.getElementById("loader");
+  if(show){
+    l.classList.remove("hidden");
+    l.classList.add("flex");
+  } else {
+    l.classList.add("hidden");
+  }
+}
+</script>
+
+
+
+<script>
+	
+async function uploadAudio(file) {
+	
+	try {
+		console.log("🚀 uploadAudio called");
+		const safeName = file.name.replace(/\s+/g, "_");
+
+		const init = await fetch(`/AWSUploading/initiateMultipart?file_name=${safeName}`);
+		console.log("INIT RESPONSE RAW:", init);
+		
+		
+		const data = await init.json();
+		//console.log("INIT DATA:", data);
+		if (!data.key || !data.uploadId) {
+			alert("Failed to initiate upload");
+			return;
+		}
+
+		const chunk = 5 * 1024 * 1024;
+		const total = Math.ceil(file.size / chunk);
+		let parts = [];
+
+		for (let i = 1; i <= total; i++) {
+
+			const start = (i - 1) * chunk;
+			const blob = file.slice(start, start + chunk);
+
+			const u = await fetch(`/AWSUploading/getChunkUploadUrl?key=${data.key}&uploadId=${data.uploadId}&partNumber=${i}`);
+			const { url } = await u.json();
+
+			const res = await fetch(url, { method: 'PUT',   body: blob });
+
+			if (!res.ok) {
+				alert("Upload failed at part " + i);
+				return;
+			}
+
+			const etag = res.headers.get('ETag');
+
+			if (!etag) {
+				alert("Missing ETag. Fix S3 CORS.");
+				return;
+			}
+
+			parts.push({
+			ETag: `"${etag.replace(/"/g,'')}"`,
+				
+				PartNumber: i
+			});
+
+			//bBar.style.width = (i / total * 100) + '%';
+		}
+
+		console.log("FINAL PAYLOAD:", { key: data.key, uploadId: data.uploadId, parts });
+
+		const done = await fetch('/AWSUploading/completeMultipart', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ key: data.key, uploadId: data.uploadId, parts })
+		});
+
+		const final = await done.json();
+		
+		console.log("COMPLETE RESPONSE", final);
+
+		return final.file_url;
+		
+	} catch (err) {
+       // console.error("❌ ERROR:", err);
+        alert("JS Error: " + err);
+    }
+}
+</script>
+
+
 
 </body>
 </html>

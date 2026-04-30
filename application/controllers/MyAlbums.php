@@ -7,9 +7,9 @@ class MyAlbums extends CI_Controller {
     {
         parent::__construct();
         $this->load->model('Album_model');
-        $this->load->library(['session', 'pagination']);
+        $this->load->library(['session', 'pagination', 'S3Uploader']);
         $this->load->helper(['url', 'form']);
-
+		
         if (!$this->session->userdata('user_id')) {
             redirect('login');
         }

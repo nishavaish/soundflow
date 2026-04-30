@@ -203,7 +203,7 @@ function v($key, $album, $step1)
           <label class="text-sm font-semibold" for="upc">UPC Code (Optional)</label>
           <div class="flex gap-2">
             <input type="text" id="upc" name="upc_code" value="<?= v('upc_code', $album ?? null, $step1); ?>"
-              class="flex-1 bg-[#050505] border border-border rounded-lg px-3 py-2 text-sm"
+              class="flex-1 bg-white border border-border rounded-lg px-3 py-2 text-sm"
               placeholder="We'll generate one if blank">
             <button type="button" class="border border-border rounded-lg px-4 text-sm hover:bg-white/5">
               Generate

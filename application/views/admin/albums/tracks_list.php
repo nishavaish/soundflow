@@ -283,7 +283,7 @@
             <th class="px-4 py-3 text-right">Revenue</th>
             <th class="px-4 py-3 text-right">Downloads</th>
 
-            <th class="px-4 py-3 text-center">Approved?</th>
+        <!--    <th class="px-4 py-3 text-center">Approved?</th>  -->
             <th class="px-4 py-3 text-center"> &nbsp; </th>
             <th class="px-4 py-3 text-center">Metadata</th>
             <th class="px-4 py-3 text-center">Streaming Links</th>
@@ -331,12 +331,12 @@
                     <?= number_format($t->total_downloads) ?>
                 </td>
 
-
+<!--
                 <td class="px-4 py-3 text-gray-400">
                     <?= $t->is_active ? 'Yes' : 'No' ?>
                 </td>
 
-
+-->
 
                 <td class="px-4 py-3 text-gray-400">
                     <button onclick="openIsrcModal(
@@ -410,7 +410,7 @@
             pageLength: 25,
             order: [[1, 'desc']], // Release Date
             columnDefs: [
-                { orderable: false, targets: [6, 7, 8] } //  Actions
+                { orderable: false, targets: [5, 6, 7] } //  Actions
             ],
             dom: '<"flex justify-between items-center mb-3"lf>rt<"flex justify-between items-center mt-3"ip>'
         });

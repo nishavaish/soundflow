@@ -108,7 +108,7 @@
 
             <p class="text-sm text-muted mb-3">Click to upload JPG or PNG (3000x3000 recommended)</p>
 
-            <input type="file" name="artwork" accept="image/*"
+            <input type="file" name="artwork"  id="artwork" accept="image/*"
               class="block mx-auto text-sm text-muted" required>
           </div>
         </div>
@@ -171,6 +171,101 @@
       document.querySelector('[data-template="' + id + '"]').classList.add('template-selected');
     }
   </script>
+  
+  
+ 
+<script>
+let isUploadingArtwork = false;
 
+document.querySelector("form").addEventListener("submit", async function(e){
+
+  if(!isUploadingArtwork){
+    e.preventDefault(); // stop normal submit
+
+    isUploadingArtwork = true;
+
+    try {
+
+      const file = document.getElementById("artwork").files[0];
+
+      if(!file){
+        alert("Please select artwork");
+        isUploadingArtwork = false;
+        return;
+      }
+
+      showLoader(true);
+
+      // 🚀 Upload artwork
+      const artworkUrl = await uploadArtwork(file);
+
+      console.log("ARTWORK URL:", artworkUrl);
+
+      // ✅ remove base URL
+      const base = "<?php echo AWS_ACCESS_URL ?>";
+      const artworkPath = artworkUrl.replace(base, '');
+
+      // ✅ append hidden input
+      let hidden = document.createElement("input");
+      hidden.type = "hidden";
+      hidden.name = "artwork_path";
+      hidden.value = artworkPath;
+
+      this.appendChild(hidden);
+
+      showLoader(false);
+
+      // ✅ submit form
+      this.submit();
+
+    } catch(err){
+      console.error(err);
+      alert("Upload failed");
+      showLoader(false);
+      isUploadingArtwork = false;
+    }
+
+  }
+
+});
+</script>
+
+
+<script>
+async function uploadArtwork(file) {
+const safeName = file.name.replace(/\s+/g, "_");
+    const r = await fetch(`/AWSUploading/getArtworkUrl?file_name=${safeName}`);
+    const d = await r.json();
+
+    await fetch(d.url, {method:'PUT',  headers: {
+        "x-amz-acl": "private"
+    }, body:file});
+
+   // aBar.style.width = '100%';
+
+    return d.file_url;
+}
+
+</script>
+
+
+
+<div id="loader" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+  <div class="bg-white px-6 py-4 rounded shadow">
+    Uploading artwork... ⏳
+  </div>
+</div>
+
+<script>
+function showLoader(show){
+  const l = document.getElementById("loader");
+  if(show){
+    l.classList.remove("hidden");
+    l.classList.add("flex");
+  } else {
+    l.classList.add("hidden");
+  }
+}
+</script>
 </body>
 </html>

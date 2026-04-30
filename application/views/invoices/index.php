@@ -153,7 +153,7 @@ window.fetch = function (url, options = {}) {
     <input type="month"
            name="month"
            value="<?= $selected_month ?>"
-           class="bg-background border border-border px-4 py-2 rounded text-white">
+           class="bg-white border border-border px-4 py-2 rounded text-black">
 
     <button class="bg-primary px-6 py-2 rounded font-semibold">
       Filter
@@ -194,7 +194,12 @@ window.fetch = function (url, options = {}) {
 		</span>
 
 		  <!-- View -->
-		  <a href="<?= base_url($inv->file_path) ?>"
+		  <?php $downloadLink = $this->s3uploader->getSignedGetUrlDownload($inv->file_path, 3600, true); ?>
+		  <?php //$downloadLink = AWS_ACCESS_URL.$inv->file_path."&response-content-disposition=attachment"; ?>
+		  <!-- <img src="<?= $downloadLink; ?>" class="w-48 h-48 object-cover"> -->
+		  
+		  <br>
+		  <a href="<?= $downloadLink; ?>"
 			 target="_blank"
 			 title="View Invoice"
 			 class="text-primary hover:text-orange-400 transition">
@@ -221,7 +226,7 @@ window.fetch = function (url, options = {}) {
 <div id="deleteConfirmModal"
      class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
 
-  <div class="bg-card border border-border rounded-lg w-full max-w-sm p-6">
+  <div class="bg-black border border-border rounded-lg w-full max-w-sm p-6">
     <h3 class="text-lg font-semibold text-white mb-2">
       Delete Invoice
     </h3>
@@ -306,6 +311,7 @@ $('#cancelUpload').on('click', function () {
 
 
 <script>
+	/*
 $('#invoiceForm').on('submit', function (e) {
   e.preventDefault();
 
@@ -322,6 +328,129 @@ $('#invoiceForm').on('submit', function (e) {
   })
   .catch(() => showAlert('Upload failed', 'error'));
 });
+
+	*/
+</script>
+
+
+
+
+
+<script>
+document.getElementById('invoiceForm').addEventListener('submit', async e => {
+  e.preventDefault();
+
+  try {
+
+    showLoader("Uploading invoice...", "success");
+
+    const fileInput = document.querySelector('input[name="invoice_file"]');
+    const file = fileInput.files[0];
+
+    if (!file) {
+      showLoader("Please select a file", "error");
+      return;
+    }
+
+    // 🚀 Upload to S3
+    const fileUrl = await uploadArtwork(file);
+
+    if (!fileUrl) {
+      showLoader("Upload failed", "error");
+      return;
+    }
+
+    const base = "<?= AWS_ACCESS_URL ?>";
+    const path = fileUrl.replace(base, '');
+
+    // ✅ send metadata + path to backend
+    const fd = new FormData(e.target);
+   
+   
+   //fd.delete("invoice_file"); // ❌ remove file
+    fd.append("file_path", path); // ✅ send S3 path
+	
+	
+    const res = await fetch('<?= site_url("profile/upload_invoice_ajax") ?>', {
+      method: 'POST',
+      body: fd
+    });
+
+    const data = await res.json();
+
+    showLoader(data.message, data.status);
+
+    if (data.status === 'success') {
+      setTimeout(() => location.reload(), 800);
+    }
+
+  } catch (err) {
+    console.error(err);
+    showLoader("Upload failed", "error");
+  }
+});
+</script>
+
+<script>
+async function uploadArtwork__1(file) {
+const safeName = file.name.replace(/\s+/g, "_");
+    const r = await fetch(`/AWSUploading/getInvoicesUrl?file_name=${safeName}`);
+    const d = await r.json();
+
+    await fetch(d.url, {method:'PUT',  headers: {
+        "x-amz-acl": "private"
+    }, body:file});
+
+   // aBar.style.width = '100%';
+
+    return d.file_url;
+}
+
+</script>
+
+<script>
+	async function uploadArtwork(file) {
+
+  const safeName = file.name.replace(/\s+/g, "_");
+
+  const r = await fetch(`/AWSUploading/getInvoicesUrl?file_name=${safeName}`);
+  const d = await r.json();
+
+  const res = await fetch(d.url, {
+    method: 'PUT',
+    headers: {
+      "Content-Type": file.type,   // ✅ REQUIRED
+      "x-amz-acl": "private"
+    },
+    body: file
+  });
+
+  if (!res.ok) {
+    alert("Upload failed");
+    return null;
+  }
+
+  return d.file_url;
+}
+
+</script>
+
+<div id="loader" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+  <div class="bg-white px-6 py-4 rounded shadow">
+    Uploading invoice... ⏳
+  </div>
+</div>
+
+<script>
+function showLoader(show){
+  const l = document.getElementById("loader");
+  if(show){
+    l.classList.remove("hidden");
+    l.classList.add("flex");
+  } else {
+    l.classList.add("hidden");
+  }
+}
 </script>
 
 

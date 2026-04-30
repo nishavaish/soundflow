@@ -67,7 +67,7 @@
         Upload your audio file and complete the details below.
       </p>
 
-      <form method="post" enctype="multipart/form-data" action="<?= base_url('UploadSingle/step3') ?>" class="space-y-10">
+      <form id="uploadForm" method="post" enctype="multipart/form-data" action="<?= base_url('UploadSingle/step3') ?>" class="space-y-10">
 		  
 		     <?php
     $csrf_name = $this->security->get_csrf_token_name();
@@ -84,7 +84,7 @@
 
           <div class="border-2 border-dashed border-border rounded-lg p-10 text-center">
             <i data-lucide="upload" class="w-10 h-10 text-muted mx-auto mb-3"></i>
-            <input type="file" name="audio_file" required class="block mx-auto text-sm text-muted">
+            <input type="file" name="audio_file" id="audio_file" required class="block mx-auto text-sm text-muted">
           </div>
         </div>
 
@@ -270,7 +270,7 @@
                      class="w-full bg-white border-b border-zinc-400/30 rounded-lg px-3 py-2">
             </div>
           </div>
-        </div>
+		  </div>
 		
 		
 		
@@ -380,6 +380,165 @@
       document.getElementById("producers").appendChild(div);
     }
   </script>
+  
+<script>  
+  
+document.addEventListener("DOMContentLoaded", function(){
 
+  let isUploading = false;
+
+  document.getElementById("uploadForm").addEventListener("submit", async function(e){
+
+    if(!isUploading){
+      e.preventDefault();
+
+      isUploading = true;
+
+      try {
+
+        const audioInput = document.getElementById("audio_file");
+
+        if(!audioInput){
+          console.error("audio_file input not found ❌");
+          return;
+        }
+
+        const aud = audioInput.files[0];
+
+        if(!aud){
+          alert("Please select audio");
+          isUploading = false;
+          return;
+        }
+
+        showLoader(true);
+
+        const audioUrl = await uploadAudio(aud);
+
+        const base = "<?php echo AWS_ACCESS_URL ?>";
+        const audioPath = audioUrl.replace(base, '');
+
+        let form = this;
+
+        let hidden = document.createElement("input");
+        hidden.type = "hidden";
+        hidden.name = "audio_path";
+        hidden.value = audioPath;
+
+        form.appendChild(hidden);
+
+        showLoader(false);
+
+        form.submit();
+
+      } catch(err){
+        console.error(err);
+        showLoader(false);
+        isUploading = false;
+      }
+
+    }
+
+  });
+
+});
+</script>
+
+
+<script>
+function showLoader(show){
+  const l = document.getElementById("loader");
+  if(show){
+    l.classList.remove("hidden");
+    l.classList.add("flex");
+  } else {
+    l.classList.add("hidden");
+  }
+}
+
+</script>
+
+
+<script>
+	
+async function uploadAudio(file) {
+	
+	try {
+		console.log("🚀 uploadAudio called");
+		const safeName = file.name.replace(/\s+/g, "_");
+
+		const init = await fetch(`/AWSUploading/initiateMultipart?file_name=${safeName}`);
+		console.log("INIT RESPONSE RAW:", init);
+		
+		
+		const data = await init.json();
+		//console.log("INIT DATA:", data);
+		if (!data.key || !data.uploadId) {
+			alert("Failed to initiate upload");
+			return;
+		}
+
+		const chunk = 5 * 1024 * 1024;
+		const total = Math.ceil(file.size / chunk);
+		let parts = [];
+
+		for (let i = 1; i <= total; i++) {
+
+			const start = (i - 1) * chunk;
+			const blob = file.slice(start, start + chunk);
+
+			const u = await fetch(`/AWSUploading/getChunkUploadUrl?key=${data.key}&uploadId=${data.uploadId}&partNumber=${i}`);
+			const { url } = await u.json();
+
+			const res = await fetch(url, { method: 'PUT',   body: blob });
+
+			if (!res.ok) {
+				alert("Upload failed at part " + i);
+				return;
+			}
+
+			const etag = res.headers.get('ETag');
+
+			if (!etag) {
+				alert("Missing ETag. Fix S3 CORS.");
+				return;
+			}
+
+			parts.push({
+			ETag: `"${etag.replace(/"/g,'')}"`,
+				
+				PartNumber: i
+			});
+
+			//bBar.style.width = (i / total * 100) + '%';
+		}
+
+		console.log("FINAL PAYLOAD:", { key: data.key, uploadId: data.uploadId, parts });
+
+		const done = await fetch('/AWSUploading/completeMultipart', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ key: data.key, uploadId: data.uploadId, parts })
+		});
+
+		const final = await done.json();
+		
+		console.log("COMPLETE RESPONSE", final);
+
+		return final.file_url;
+		
+	} catch (err) {
+       // console.error("❌ ERROR:", err);
+        alert("JS Error: " + err);
+    }
+}
+</script>
+
+
+<div id="loader" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+  <div class="bg-white px-6 py-4 rounded shadow">
+    Uploading... Please wait ⏳
+  </div>
+</div>
 </body>
 </html>

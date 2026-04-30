@@ -7,7 +7,7 @@ class UploadAlbum extends CI_Controller{
     {
         parent::__construct();
         $this->load->model('Album_model');
-        $this->load->library(['form_validation', 'upload', 'session']);
+        $this->load->library(['form_validation', 'upload', 'session', 'S3Uploader']); 
         $this->load->helper(['url', 'form']);
 
         if (!$this->session->userdata('user_id')) {
@@ -99,7 +99,7 @@ class UploadAlbum extends CI_Controller{
     /* ============================================================
        STEP 3 — TRACKS
     ============================================================ */
-    public function step3()
+    public function step3___old()
     {
 		if (!$this->session->userdata('user_id')) {
 			redirect('login');
@@ -165,11 +165,62 @@ class UploadAlbum extends CI_Controller{
 		$data['num_tracks'] = $num_tracks;
         $this->load->view('album/step3', $data);
     }
+	
+	
+	public function step3()
+{
+    if (!$this->session->userdata('user_id')) {
+        redirect('login');
+    }
+
+    if ($this->input->post()) {
+
+        $num_tracks = $this->session->userdata('album_step1')['num_tracks'];
+
+        $track_titles = $this->input->post('track_title');
+        $audio_paths  = $this->input->post('audio_path'); // ✅ from JS (S3)
+        
+        $track_data = [];
+
+        for ($i = 0; $i < $num_tracks; $i++) {
+
+            // ✅ Validate title
+            if (empty($track_titles[$i])) {
+                $this->session->set_flashdata('error', "Track title missing for track #" . ($i + 1));
+                redirect('UploadAlbum/step3');
+            }
+
+            // ✅ Validate audio path (IMPORTANT)
+            if (empty($audio_paths[$i])) {
+                $this->session->set_flashdata('error', "Audio upload missing for track #" . ($i + 1));
+                redirect('UploadAlbum/step3');
+            }
+
+            $track_data[] = [
+                'track_title' => $track_titles[$i],
+                'songwriters' => $_POST['songwriters'][$i] ?? '',
+                'artists'     => $_POST['artists'][$i] ?? '',
+                'producers'   => $_POST['producers'][$i] ?? '',
+                'audio_file'  => $audio_paths[$i], // ✅ S3 PATH
+                'is_explicit' => $_POST['is_explicit'][$i] ?? 0
+            ];
+        }
+
+        // ✅ Store in session
+        $this->session->set_userdata('album_step3', $track_data);
+
+        redirect('UploadAlbum/step4');
+    }
+
+    $data['num_tracks'] = $this->session->userdata('album_step1')['num_tracks'];
+
+    $this->load->view('album/step3', $data);
+}
 
     /* ============================================================
        STEP 4 — ARTWORK UPLOAD
     ============================================================ */
-    public function step4()
+    public function step4__old()
     {
 		if (!$this->session->userdata('user_id')) {
 			redirect('login');
@@ -207,7 +258,53 @@ class UploadAlbum extends CI_Controller{
         $this->load->view('album/step4');
     }
 
-    
+    public function step4()
+{
+    if (!$this->session->userdata('user_id')) {
+        redirect('login');
+    }
+	$user_id = $this->session->userdata('user_id');
+
+    if ($this->input->post()) {
+
+        $artwork_path = $this->input->post('artwork_path');
+        $old_cover    = $this->input->post('old_cover_art');
+        $template     = $this->input->post('template');
+
+        // ✅ If new artwork uploaded → use it
+        if (!empty($artwork_path)) {
+
+            // 🔥 OPTIONAL: delete old S3 file
+            if (!empty($old_cover)) {
+			
+				$filePaths[] = $old_cover;
+                $this->s3uploader->deleteMultipleObjects($filePaths);
+
+            }
+
+            $cover = $artwork_path;
+
+        } else {
+
+            // ✅ fallback to old
+            $cover = $old_cover;
+        }
+
+        if (empty($cover)) {
+            $this->session->set_flashdata('error', 'Artwork is required');
+            redirect('UploadAlbum/step4');
+        }
+
+        $this->session->set_userdata('album_step4', [
+            'cover_art' => $cover,
+            'template'  => $template
+        ]);
+
+        redirect('UploadAlbum/review'); // or final submit
+    }
+
+    $this->load->view('album/step4');
+}
 	
 
     /* ============================================================
@@ -354,7 +451,7 @@ public function edit_step3__old()
     $this->load->view('album/step3', $data);
 }
 
-public function edit_step3()
+public function edit_step3__local_uploads()
 {
     $user_id = $this->session->userdata('user_id');
 	$album_id = $this->session->userdata('edit_album_id');
@@ -479,10 +576,115 @@ public function edit_step3()
     $this->load->view('album/step3', $data);
 }
 
+
+public function edit_step3()
+{
+    $user_id  = $this->session->userdata('user_id');
+    $album_id = $this->session->userdata('edit_album_id');
+
+    if (!$user_id) return redirect('login');
+
+    $editMode = $album_id ? true : false;
+
+    $data = [];
+    $data['editMode'] = $editMode;
+    $data['album_id'] = $album_id;
+
+    /* ================= LOAD DATA ================= */
+    if ($editMode) {
+
+        $this->load->model('Album_model');
+
+        $album = $this->Album_model->get_album($album_id);
+        if (!$album) show_error("Album not found.");
+
+        $tracks = $this->Album_model->get_album_tracks($album_id);
+
+        $data['tracks'] = $tracks;
+        $data['num_tracks'] = count($tracks);
+
+    } else {
+
+        $step1 = $this->session->userdata('album_step1');
+        if (!$step1) return redirect('UploadAlbum/step1');
+
+        $data['tracks'] = [];
+        $data['num_tracks'] = $step1['num_tracks'];
+    }
+
+    /* ================= FORM SUBMIT ================= */
+    if ($this->input->post()) {
+
+        $posted_tracks  = json_decode($this->input->post('track_data_json'), true);
+        $existing_audio = $this->input->post('existing_audio_file') ?: [];
+        $audio_paths    = $this->input->post('audio_path') ?: [];
+
+        if (!is_array($posted_tracks)) {
+            show_error("Track metadata missing or corrupted.");
+        }
+
+        $finalTracks = [];
+
+        foreach ($posted_tracks as $idx => $meta) {
+
+            $oldAudio = $existing_audio[$idx] ?? null;
+            $newAudio = $audio_paths[$idx] ?? null;
+
+            /* ================= AUDIO DECISION ================= */
+
+            // Case 1: New upload exists
+            if (!empty($newAudio)) {
+                $audioFile = $newAudio;
+
+                // OPTIONAL: delete old S3 file if replaced
+                // $this->s3->delete($oldAudio);
+				if($oldAudio){
+					$filePaths[] = $oldAudio;
+					$result = $this->s3uploader->deleteMultipleObjects($filePaths);
+				
+				}
+
+            }
+            // Case 2: Keep old (edit mode)
+            else if ($editMode && $oldAudio) {
+                $audioFile = $oldAudio;
+            }
+            // Case 3: New track without upload
+            else {
+                $data['upload_error'] = "Audio file is required for track #" . ($idx + 1);
+                return $this->load->view('album/step3', $data);
+            }
+
+            /* ================= FINAL TRACK ================= */
+            $finalTracks[] = [
+                'track_title' => $meta['track_title'],
+                'artists'     => $meta['artists'],
+                'songwriters' => $meta['songwriters'],
+                'producers'   => $meta['producers'],
+                'is_explicit' => $meta['is_explicit'],
+                'audio_file'  => $audioFile
+            ];
+        }
+
+        /* ================= SAVE ================= */
+        $this->session->set_userdata('album_step3', $finalTracks);
+
+        if ($editMode) {
+            return redirect("UploadAlbum/edit_step4");
+        } else {
+            return redirect("UploadAlbum/step4");
+        }
+    }
+
+    $this->load->view('album/step3', $data);
+}
+
+
+
 /* ============================================================
    STEP 4 — ARTWORK
 ============================================================ */
-public function edit_step4()
+public function edit_step4__old()
 {
     $album_id = $this->session->userdata('edit_album_id');
     $editMode = $album_id ? TRUE : FALSE;
@@ -531,6 +733,67 @@ public function edit_step4()
 
     $this->load->view('album/step4', $data);
 }
+
+
+public function edit_step4()
+{
+    $album_id = $this->session->userdata('edit_album_id');
+    $editMode = $album_id ? TRUE : FALSE;
+
+    $data = [];
+
+    if ($editMode) {
+        $album = $this->Album_model->get_album($album_id);
+        $data['album_id'] = $album_id;
+        $data['album'] = $album;
+    }
+
+    if ($this->input->post()) {
+
+        // ✅ Get S3 uploaded path
+        $newCover = $this->input->post('artwork_path');
+        $oldCover = $this->input->post('old_cover_art');
+
+        /* ================= COVER LOGIC ================= */
+
+        if (!empty($newCover)) {
+
+            $cover = $newCover;
+
+            // OPTIONAL: delete old S3 file
+             if ($editMode && $oldCover) {
+               // $this->s3uploader->delete($oldCover);
+				$filePaths[] = $oldCover;
+				$result = $this->s3uploader->deleteMultipleObjects($filePaths);
+             }
+
+        } else if ($editMode && $oldCover) {
+
+            // Keep old
+            $cover = $oldCover;
+
+        } else {
+
+            // Required in create mode
+            $data['upload_error'] = "Artwork is required.";
+            return $this->load->view('album/step4', $data);
+        }
+
+        /* ================= SAVE ================= */
+
+        $step4 = [
+            'cover_art' => $cover,
+            'template'  => $this->input->post('template')
+        ];
+
+        $this->session->set_userdata('album_step4', $step4);
+
+        return redirect('UploadAlbum/review');
+    }
+
+    $this->load->view('album/step4', $data);
+}
+
 
 /* ============================================================
    REVIEW PAGE
@@ -639,8 +902,10 @@ public function delete_track($track_id)
     }
 
     // Remove audio file
-    if ($track->audio_file && file_exists(FCPATH . $track->audio_file)) {
-        @unlink(FCPATH . $track->audio_file);
+    if ($track->audio_file) {
+        //@unlink(FCPATH . $track->audio_file);
+		$filePaths[] = $track->audio_file;
+		$result = $this->s3uploader->deleteMultipleObjects($filePaths);
     }
 
     $this->db->where('id', $track_id)->delete('album_tracks');

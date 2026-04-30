@@ -9,7 +9,7 @@ class Invoices extends MY_Controller {
         if (!$this->session->userdata('user_id')) {
             redirect('login');
         }
-       
+          $this->load->library('S3Uploader');
         $this->load->model('Invoice_model');
     }
 

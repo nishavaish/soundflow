@@ -63,6 +63,15 @@
                 >
                     RESOURCES
                 </a>
+				
+				  <a  href="#pricing"
+                    class="hover:text-primary-custom transition-colors cursor-pointer"
+                >
+                    PRICING
+                </a>
+				
+				
+				
             </nav>
             <div class="flex items-center gap-3">
                 <a href="<?php echo site_url('login') ?>">
@@ -613,7 +622,102 @@
         </div>
     </section>
 
-    <!-- Footer -->
+  
+  <section id="pricing" class=" py-20">
+  	  <div class="container mx-auto px-4 text-center">
+ 
+		<?php
+		$colors = [
+		  'daily' => 'from-[#1e3a8a] to-[#0f172a]',
+		  'monthly' => 'from-[#4c1d95] to-[#312e81]',
+		  'yearly' => 'from-[#064e3b] to-[#022c22]'
+		];
+		?>
+		
+		
+		 <h2 class="text-4xl md:text-5xl font-bold mb-6">
+               Where Your Music <span class="text-primary-custom"> Meets Opportunity</span>
+            </h2>
+
+
+		  <p class="text-xl text-gray-900 mb-8 max-w-2xl mx-auto">
+			  Start today with a plan that supports your growth and success.</p>
+
+		  <div class="grid md:grid-cols-3 gap-8">
+
+			<?php 
+			$colors = [
+			  'yearly' => 'from-yellow-400 via-orange-500 to-pink-500',
+			  'monthly' => 'from-pink-500 via-red-500 to-purple-500',
+			  'daily' => 'from-blue-500 via-indigo-500 to-purple-600'
+			];
+			?>
+
+			<?php foreach ($plans as $p): ?>
+
+			  <div class="relative p-[3px] rounded-2xl bg-gradient-to-r <?= $colors[$p->duration] ?? 'from-gray-300 to-gray-500' ?> hover:scale-105 transition duration-300">
+				
+				<!-- Inner Card -->
+				<div class="bg-white rounded-xl p-6 h-full flex flex-col justify-between shadow-md">
+
+				  <!-- Badge -->
+				  <?php if($p->price >= 4000): ?>
+					<div class="absolute -top-3 left-4 bg-yellow-400 text-black text-xs px-3 py-1 rounded-full font-semibold">
+					  BEST DEAL
+					</div>
+				  <?php endif; ?>
+
+				  <!-- Plan Name -->
+				  <h3 class="text-lg font-semibold text-gray-800 mb-2 uppercase tracking-wide">
+					<?= html_escape($p->name) ?>
+				  </h3>
+
+				  <!-- Price -->
+				  <div class="mb-4">
+					<span class="text-4xl font-bold text-black">
+					  ₹<?= number_format($p->price) ?>
+					</span>
+					<span class="text-gray-500 text-sm">
+					  /<?= $p->duration ?>
+					</span>
+				  </div>
+
+				  <!-- Features -->
+				  <ul class="space-y-2 mb-6">
+					<?php if (!empty($p->features)): ?>
+					  <?php foreach ($p->features as $f): ?>
+						<li class="flex items-center text-gray-700 text-sm">
+						  <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+						  <?= html_escape($f->feature_name) ?>
+						</li>
+					  <?php endforeach; ?>
+					<?php endif; ?>
+				  </ul>
+
+				  <!-- Button -->
+				<?php $isPopular = ($p->price >= 2000); ?>
+
+		<button  class="bg-primary-custom text-white hover:bg-primary-custom rounded-full px-6 py-2 text-sm font-medium transition-colors">
+		  Get Started
+		</button>
+
+
+
+				</div>
+			  </div>
+
+			<?php endforeach; ?>
+
+		  </div>
+		</div>
+
+  </section>
+  
+  
+  
+  
+  
+  <!-- Footer -->
     <footer class="border-t border-zinc-200/30 py-12 bg-zinc-300/50">
         <div class="container max-w-6xl mx-auto px-4">
             <div class="grid md:grid-cols-4 gap-8 mb-8">

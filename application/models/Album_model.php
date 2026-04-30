@@ -241,17 +241,31 @@ class Album_model extends CI_Model {
     {
         // Delete artwork file
         $album = $this->get_album($album_id);
-        if ($album && file_exists(FCPATH . $album->cover_art)) {
+       /*  if ($album && file_exists(FCPATH . $album->cover_art)) {
             @unlink(FCPATH . $album->cover_art);
         }
+		
+		*/ 
+		if (!empty($album->cover_art)) {
+            $filePaths[] = $album->cover_art;
+        }
+		
+		
 
         // Delete audio files
         $tracks = $this->get_album_tracks($album_id);
         foreach ($tracks as $t) {
-            if (file_exists(FCPATH . $t->audio_file)) {
+            /* if (file_exists(FCPATH . $t->audio_file)) {
                 @unlink(FCPATH . $t->audio_file);
             }
+			 */
+			if (!empty($t->audio_file)) {
+				$filePaths[] = $t->audio_file;
+			}
         }
+		
+		// finally call S3 delete to delete albumn data
+		$result = $this->s3uploader->deleteMultipleObjects($filePaths);
 
         // Delete rows
         $this->db->where('album_id', $album_id)->delete('album_tracks');

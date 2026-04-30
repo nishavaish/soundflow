@@ -8,9 +8,10 @@
   <!-- TailwindCSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Custom Tailwind Colors -->
+ <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <script>
-	  tailwind.config = {
+    tailwind.config = {
       theme: {
         extend: {
           colors: {
@@ -24,6 +25,7 @@
       }
     }
   </script>
+
   
  <style>
 #createProjectForm {
@@ -37,7 +39,8 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
-<body class="min-h-screen bg-white">
+
+<body class="bg-white min-h-screen text-black">
 
   <!-- Header -->
  <?php $this->view('page_header'); ?>

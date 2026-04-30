@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?= $song->song_name ?> | Soundflow</title>
+<title><?= "Test" ?> | Soundflow</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 
@@ -145,7 +145,7 @@ body {
 .bg-artwork {
   position: fixed;
   inset: 0;
-  background-image: url('<?= $artwork; ?>');
+  background-image: url('<?= $artwork ?>');
   background-size: cover;
   background-position: center;
   filter: blur(60px);
@@ -174,23 +174,23 @@ body {
   <div class="ring-wrapper mx-auto">
   <div id="ring" class="ring"></div>
 
-  <img src="<?= $artwork; ?>" 
+  <img src="<?= $artwork ?>" 
        class="artwork">
 </div>
 
 
     <h1 class="mt-6 text-2xl font-semibold tracking-wide">
-		  <?= $song->song_name ?>
+		  <?= "Test"; ?>
 		</h1>
   <p class="text-gray-300 text-sm mt-1">
-  <?= $song->artist_name ?>
+  <?= "Test" ?>
 </p>
   </div>
 </div>
 
 <!-- AUDIO -->
 <audio id="audio">
-  <source src="<?= $audio; ?>" type="audio/mpeg">
+  <source src="<?= $audio ?>" type="audio/mpeg">
 </audio>
 
 <!-- MINI PLAYER -->
@@ -199,11 +199,11 @@ body {
   <div class="mini-progress" id="miniProgress"></div>
 
   <div class="mini-left">
-    <img src="<?= $artwork; ?>" class="mini-art">
+    <img src="<?= $artwork ?>" class="mini-art">
 
     <div class="mini-info">
-      <div class="mini-title"><?= $song->song_name ?></div>
-      <div class="mini-artist"><?= $song->artist_name ?></div>
+      <div class="mini-title"><?= "Test" ?></div>
+      <div class="mini-artist"><?= "Test" ?></div>
     </div>
   </div>
 
@@ -222,7 +222,9 @@ body {
   </button>
 
 </div>
-
+<script>
+document.addEventListener('contextmenu', e => e.preventDefault());
+</script>
 <script>
 	
 	const ring = document.getElementById("ring");
@@ -236,6 +238,11 @@ const miniProgress = document.getElementById("miniProgress");
 
 /* PLAY / PAUSE */
 miniPlay.onclick = () => {
+	
+	if (!audio.src) {
+    audio.src = "<?= $audio ?>"; // load only when needed
+  }
+
   if(audio.paused){
     audio.play();
 

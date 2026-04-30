@@ -15,6 +15,7 @@ class Releases extends AdminBase {
     {
         parent::__construct();
         $this->load->model('admin/AdminRelease_model');
+		    $this->load->library('S3Uploader');
     }
 
     public function index()
@@ -352,7 +353,7 @@ public function download_single_metadata($release_id)
 
 
 
-public function export_single_zip($release_id)
+public function export_single_zip__beforeS3($release_id)
 {
     $single = $this->AdminRelease_model->get_single_full_metadata($release_id);
 
@@ -445,7 +446,117 @@ public function export_single_zip($release_id)
     exit;
 }
 
+public function export_single_zip($release_id)
+{
+    $single = $this->AdminRelease_model->get_single_full_metadata($release_id);
 
+    if (!$single) {
+        show_404();
+    }
+
+    $zip = new ZipArchive();
+    $zipName = 'single_' . $single->isrc . '_export.zip';
+    $zipPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $zipName;
+
+    if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        show_error('Could not create ZIP');
+    }
+
+    /* =========================
+       ADD AUDIO FROM S3
+    ========================= */
+    if (!empty($single->audio_file)) {
+
+        $audioUrl = $this->s3uploader->getSignedGetUrl($single->audio_file, 300);
+        $audioContent = file_get_contents($audioUrl);
+
+        if ($audioContent !== false) {
+            $zip->addFromString(
+                'audio/' . basename($single->audio_file),
+                $audioContent
+            );
+        }
+    }
+
+    /* =========================
+       ADD ARTWORK FROM S3
+    ========================= */
+    if (!empty($single->file_path)) {
+
+        $artUrl = $this->s3uploader->getSignedGetUrl($single->file_path, 300);
+        $artContent = file_get_contents($artUrl);
+
+        if ($artContent !== false) {
+            $zip->addFromString(
+                'artwork/' . basename($single->file_path),
+                $artContent
+            );
+        }
+    }
+
+    /* =========================
+       METADATA CSV
+    ========================= */
+    $csv = fopen('php://temp', 'r+');
+
+    fputcsv($csv, [
+        'ISRC',
+        'Title',
+        'Primary Artist',
+        'Featuring Artist',
+        'Genre',
+        'Sub Genre',
+        'Language',
+        'Explicit Content',
+        'Lyrics',
+        'Lyrics Language',
+        'Explicit Lyrics',
+        'Streams',
+        'Revenue',
+        'Downloads',
+        'Release Date'
+    ]);
+
+    fputcsv($csv, [
+        $single->isrc,
+        $single->title,
+        $single->primary_artist,
+        $single->featuring,
+        $single->genre,
+        $single->subgenre,
+        $single->language,
+        $single->explicit_content,
+        $single->lyrics,
+        $single->lyrics_language,
+        $single->explicit_lyrics,
+        $single->stream_count,
+        $single->revenue,
+        $single->download_count,
+        date('Y-m-d', strtotime($single->release_date))
+    ]);
+
+    rewind($csv);
+    $zip->addFromString('metadata/metadata.csv', stream_get_contents($csv));
+    fclose($csv);
+
+    $zip->close();
+
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment; filename="' . $zipName . '"');
+    header('Content-Length: ' . filesize($zipPath));
+    header('Pragma: public');
+    header('Cache-Control: must-revalidate');
+    header('Expires: 0');
+
+    readfile($zipPath);
+
+    unlink($zipPath);
+    exit;
+}
 
 public function streams($release_id)
 {

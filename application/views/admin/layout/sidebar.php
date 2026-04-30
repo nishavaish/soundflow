@@ -21,11 +21,11 @@
     </a>
 
     <a href="<?= site_url('admin/albums') ?>" class="admin-link">
-      <i data-lucide="disc-3"></i> Albums
+      <i data-lucide="disc-3"></i> Albums 
     </a>
 
     <a href="<?= site_url('admin/plans') ?>" class="admin-link">
-      <i data-lucide="disc-3"></i> Plans
+      <i data-lucide="clipboard-list"></i> Plans
     </a>
 
   </nav>
